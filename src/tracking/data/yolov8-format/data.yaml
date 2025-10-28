@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['ball', 'goalkeeper', 'player', 'referee']
+
+roboflow:
+  workspace: football-project-pifbc
+  project: football-players-detection-3zvbc-yyhdl
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/football-project-pifbc/football-players-detection-3zvbc-yyhdl/dataset/1
