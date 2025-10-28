@@ -14,7 +14,7 @@ def train_yolo(data_yaml: str, model_name: str, epochs:int, batch_size: int, img
         batch=batch_size,
         imgsz=imgsz,
         project="runs/train",
-        name=f"football-{Path(model_checkpoint).stem}",
+        name=f"football-player-detection-{Path(model_checkpoint).stem}",
         device=device  # use GPU if available by setting device='0', use 'cpu' for CPU
     )
 
