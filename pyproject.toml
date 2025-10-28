@@ -1,0 +1,10 @@
+[project]
+name = "football-game-tracking"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mlflow>=3.5.1",
+    "ultralytics>=8.3.221",
+]
