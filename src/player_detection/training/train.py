@@ -1,6 +1,6 @@
-from pathlib import Path
 import logging
 import os
+from pathlib import Path
 
 from ultralytics import YOLO
 
@@ -19,8 +19,8 @@ def train_yolo(
         plots: bool
 ) ->  None:
     # Load the pretrained YOLO model
-    model_checkpoint = f"{model_name}.pt"
-    model = YOLO(model_checkpoint)
+    model_checkpoint_path = f"{model_name}.pt"
+    model = YOLO(model_checkpoint_path)
 
     # Finetune the model on my custom dataset
     model.train(
@@ -29,7 +29,7 @@ def train_yolo(
         batch=train_batch_size,
         imgsz=imgsz,
         project=model_dir,
-        name=f"football-player-detection-{Path(model_checkpoint).stem}",
+        name=f"football-player-detection-{Path(model_checkpoint_path).stem}",
         device=device
     )
 
@@ -38,10 +38,24 @@ def train_yolo(
     logger.info(f"Test set evaluation results: {results}")
 
     # Log model weights
-    best_model_path = Path(model.trainer.best)
-    logger.info(f"Training completed. Best model saved at {best_model_path}")
+    if hasattr(model, "trainer") and hasattr(model.trainer, "best"):
+        best_model_path = Path(model.trainer.best)
+        logger.info(f"Training completed. Best model saved at {best_model_path}")
+    else:
+        logger.warning("Could not find the best model path.")
 
 if __name__ == "__main__":
-    from config import TRAIN_BATCH_SIZE, EVAL_BATCH_SIZE, EPOCHS, IMG_SIZE, DEVICE, MODEL_NAME, DATA_ROOT, MODEL_DIR, PLOTS
+    from config import (TRAIN_BATCH_SIZE, EVAL_BATCH_SIZE, EPOCHS, IMG_SIZE, DEVICE, MODEL_NAME, DATA_ROOT, MODEL_DIR,
+                        PLOTS)
 
-    train_yolo(os.path.join(DATA_ROOT, "data.yaml"), MODEL_NAME, MODEL_DIR, EPOCHS, TRAIN_BATCH_SIZE, EVAL_BATCH_SIZE, IMG_SIZE, DEVICE, PLOTS)
+    train_yolo(
+        os.path.join(DATA_ROOT, "data.yaml"),
+        MODEL_NAME,
+        MODEL_DIR,
+        EPOCHS,
+        TRAIN_BATCH_SIZE,
+        EVAL_BATCH_SIZE,
+        IMG_SIZE,
+        DEVICE,
+        PLOTS
+    )
