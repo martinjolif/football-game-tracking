@@ -31,3 +31,7 @@ To run the API server, use the following command from the ``player_detection/api
 uvicorn app:app --reload --host 0.0.0.0 --port 8000
 curl -X POST "http://localhost:8000/player-detection/image" -F "file=@path_to_your_image.jpg"
 ```
+
+### Football ball detection
+
+### Football field lines detection
