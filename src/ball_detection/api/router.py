@@ -2,9 +2,9 @@ import asyncio
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
-from inference import detect_ball_in_image
-from schemas import InferenceResponse
+from ball_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
+from ball_detection.api.inference import detect_ball_in_image
+from utils.schemas import InferenceResponse
 
 router = APIRouter(prefix="/ball-detection")
 
