@@ -1,13 +1,15 @@
 import io
 import time
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from ultralytics import YOLO
 
 from config import INFERENCE_MODEL_PATH
-from schemas import InferenceResponse
+from schemas import InferenceResponse, BoundingBox, Detection
 
 model = YOLO(INFERENCE_MODEL_PATH)
+#model.export(format="onnx")  # Export the model to ONNX format
+#TODO: Load the ONNX model for inference instead of the original YOLO model
 
 def detect_players_in_image(image_bytes: bytes) -> InferenceResponse:
     """Perform player detection on a single image."""
@@ -16,26 +18,26 @@ def detect_players_in_image(image_bytes: bytes) -> InferenceResponse:
     except (UnidentifiedImageError, OSError) as e:
         raise ValueError("The input data is not a valid image") from e
 
-    start_time = time.time()
+    start_time = time.perf_counter()
     results = model(image_pil)
-    end_time = time.time()
+    end_time = time.perf_counter()
     inference_time = end_time - start_time
     detections = []
     for result in results:
         for box in result.boxes:
-            detections.append({
-                "detected_class_id": int(box.cls[0]),
-                "confidence": float(box.conf[0]),
-                "bbox": {
-                    "x1": float(box.xyxy[0][0]),
-                    "y1": float(box.xyxy[0][1]),
-                    "x2": float(box.xyxy[0][2]),
-                    "y2": float(box.xyxy[0][3]),
-                }
-            })
+            detections.append(Detection(
+                detected_class_id=int(box.cls[0]),
+                confidence=float(box.conf[0]),
+                bbox=BoundingBox(
+                    x0=float(box.xyxy[0][0]),
+                    y0=float(box.xyxy[0][1]),
+                    x1=float(box.xyxy[0][2]),
+                    y1=float(box.xyxy[0][3]),
+                )
+            ))
 
-    return {
-        "detections": detections,
-        "mapping_class_dict": model.model.names,
-        "inference_time": inference_time
-    }
+    return InferenceResponse(
+        detections=detections,
+        mapping_class=model.model.names,
+        inference_time=inference_time
+    )
