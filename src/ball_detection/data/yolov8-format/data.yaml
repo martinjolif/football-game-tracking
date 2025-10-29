@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['ball']
+
+roboflow:
+  workspace: football-project-pifbc
+  project: football-ball_detection-rejhg-tl9ep
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/football-project-pifbc/football-ball-detection-rejhg-tl9ep/dataset/1
