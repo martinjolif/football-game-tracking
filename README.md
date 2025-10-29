@@ -16,8 +16,8 @@ uv venv
 source .venv/bin/activate
 uv sync
 ```
-
-### Running the training script
+### Football player detection
+#### Running the training script
 To get access to mlflow project, run the following command:
 ```
  mlflow server --backend-store-uri football-game-tracking/runs/mlflow
@@ -25,3 +25,9 @@ To get access to mlflow project, run the following command:
 then open http://127.0.0.1:5000/
 
 
+#### Running the API server
+To run the API server, use the following command from the ``player_detection/api`` folder:
+```
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+curl -X POST "http://localhost:8000/player-detection/image" -F "file=@path_to_your_image.jpg"
+```
