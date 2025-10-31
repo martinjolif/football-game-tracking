@@ -2,8 +2,8 @@
 IMG_SIZE = 640
 DEVICE = "mps"  # or "cpu", "0" for GPU
 MODEL_NAME = "yolov8n" # Pretrained YOLO model name
-DATA_ROOT = "../data/yolov8-format" # Root directory for dataset
-MODEL_DIR = "../models" # Directory to save trained models
+DATA_ROOT = "src/player_detection/data/yolov8-format" # Root directory for dataset
+MODEL_DIR = "src/player_detection/models" # Directory to save trained models
 
 # Training configuration parameters for YOLO object tracking model
 TRAIN_BATCH_SIZE = 16

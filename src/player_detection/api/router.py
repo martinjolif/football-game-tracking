@@ -2,13 +2,13 @@ import asyncio
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
-from inference import detect_players_in_image
-from schemas import InferenceResponse
+from player_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
+from player_detection.api.inference import detect_players_in_image
+from utils.schemas import DetectionInferenceResponse
 
 router = APIRouter(prefix="/player-detection")
 
-@router.post("/image", response_model=InferenceResponse)
+@router.post("/image", response_model=DetectionInferenceResponse)
 async def player_detection_endpoint(file: UploadFile = File(...)):
     """Endpoint to perform player detection on an uploaded image."""
     if file.content_type not in ALLOWED_IMG_TYPES:
@@ -26,8 +26,8 @@ async def player_detection_endpoint(file: UploadFile = File(...)):
         results = await loop.run_in_executor(None, detect_players_in_image, image_bytes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error during player detection.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error during player detection: {e}")
     return results
 
 

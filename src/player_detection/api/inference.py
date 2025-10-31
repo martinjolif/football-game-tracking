@@ -4,14 +4,14 @@ import time
 from PIL import Image, UnidentifiedImageError
 from ultralytics import YOLO
 
-from config import INFERENCE_MODEL_PATH
-from schemas import InferenceResponse, BoundingBox, Detection
+from player_detection.api.config import INFERENCE_MODEL_PATH
+from utils.schemas import DetectionInferenceResponse, BoundingBox, Detection
 
 model = YOLO(INFERENCE_MODEL_PATH)
 #model.export(format="onnx")  # Export the model to ONNX format
 #TODO: Load the ONNX model for inference instead of the original YOLO model
 
-def detect_players_in_image(image_bytes: bytes) -> InferenceResponse:
+def detect_players_in_image(image_bytes: bytes) -> DetectionInferenceResponse:
     """Perform player detection on a single image."""
     try:
         image_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -36,7 +36,7 @@ def detect_players_in_image(image_bytes: bytes) -> InferenceResponse:
                 )
             ))
 
-    return InferenceResponse(
+    return DetectionInferenceResponse(
         detections=detections,
         mapping_class=model.model.names,
         inference_time=inference_time

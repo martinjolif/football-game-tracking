@@ -27,7 +27,7 @@ def train_yolo(
     elif detection_type in ["ball", "player"]:
         task="detect"
     else:
-        raise ValueError(f"Unsupported detection type: {detection_type}")
+        raise ValueError(f"Unsupported detection type: {detection_type}, must be one of 'ball', 'player', or 'pitch'.")
     # Finetune the model on my custom dataset
     model.train(
         data=data_yaml,

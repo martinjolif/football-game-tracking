@@ -4,11 +4,11 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from ball_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
 from ball_detection.api.inference import detect_ball_in_image
-from utils.schemas import InferenceResponse
+from utils.schemas import DetectionInferenceResponse
 
 router = APIRouter(prefix="/ball-detection")
 
-@router.post("/image", response_model=InferenceResponse)
+@router.post("/image", response_model=DetectionInferenceResponse)
 async def ball_detection_endpoint(file: UploadFile = File(...)):
     """Endpoint to perform ball detection on an uploaded image."""
     if file.content_type not in ALLOWED_IMG_TYPES:
@@ -26,8 +26,8 @@ async def ball_detection_endpoint(file: UploadFile = File(...)):
         results = await loop.run_in_executor(None, detect_ball_in_image, image_bytes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error during ball detection.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error during ball detection: {e}.")
     return results
 
 
