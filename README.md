@@ -46,7 +46,7 @@ curl -X POST "http://localhost:8000/player-detection/image" -F "file=@path_to_yo
 ```
 Example
 ```
- curl -X POST "http://localhost:8000/player-detection/image" -F "file=@player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"`
+ curl -X POST "http://localhost:8000/player-detection/image" -F "file=@player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
 ```
 ### Football ball detection
 
