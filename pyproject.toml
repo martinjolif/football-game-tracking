@@ -1,0 +1,14 @@
+[project]
+name = "football-game-tracking"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.120.1",
+    "mlflow>=3.5.1",
+    "onnx>=1.19.1",
+    "pytest>=8.4.2",
+    "python-multipart>=0.0.20",
+    "ultralytics>=8.3.221",
+]
