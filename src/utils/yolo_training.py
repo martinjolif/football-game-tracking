@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 from ultralytics import YOLO
@@ -17,18 +16,25 @@ def train_yolo(
         imgsz: int,
         device: str,
         plots: bool,
-        detection_type: str  # "ball", "player", "field_lines"
+        detection_type: str  # "ball", "player", "pitch"
 ) ->  None:
     # Load the pretrained YOLO model
     model_checkpoint_path = f"{model_name}.pt"
     model = YOLO(model_checkpoint_path)
 
+    if detection_type == "pitch":
+        task="pose"
+    elif detection_type in ["ball", "player"]:
+        task="detect"
+    else:
+        raise ValueError(f"Unsupported detection type: {detection_type}")
     # Finetune the model on my custom dataset
     model.train(
         data=data_yaml,
         epochs=epochs,
         batch=train_batch_size,
         imgsz=imgsz,
+        task=task,
         project=model_dir,
         name=f"football-{detection_type}-detection-{Path(model_checkpoint_path).stem}",
         device=device
