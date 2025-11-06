@@ -2,7 +2,6 @@ import cv2
 import sys
 import traceback
 from image_api import call_image_apis
-from src.utils.schemas import ImageArray
 
 PROCESSED_FRAME_INTERVAL = 50
 
@@ -34,7 +33,9 @@ try:
         frame = frame.tolist()
         results = call_image_apis(
             endpoints=[
+                "http://localhost:8000/player-detection/image",
                 "http://localhost:8001/ball-detection/image",
+                "http://localhost:8002/pitch-detection/image",
             ],
             image_bytes=frame_bytes)
         print(results)
