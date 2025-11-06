@@ -4,9 +4,9 @@ import traceback
 import cv2
 import supervision as sv
 
-from image_api import call_image_apis
+from src.app.image_api import call_image_apis
 from src.app.player_tracking import detections_from_results
-from player_tracking import visualize_frame
+from src.app.player_tracking import visualize_frame
 
 PROCESSED_FRAME_INTERVAL = 50
 PLAYER_TRACKING_VIZ = True
