@@ -2,9 +2,9 @@ import asyncio
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from pitch_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
-from pitch_detection.api.inference import detect_pitch_in_image
-from utils.schemas import PoseInferenceResponse
+from src.pitch_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
+from src.pitch_detection.api.inference import detect_pitch_in_image
+from src.utils.schemas import PoseInferenceResponse
 
 router = APIRouter(prefix="/pitch-detection")
 

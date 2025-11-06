@@ -42,14 +42,14 @@ PYTHONPATH=$PYTHONPATH:./src python src/player_detection/training/evaluation.py
 ```
 
 #### Running the API server
-To run the API server, use the following command from the ``src`` folder:
+To run the API server, use the following command from the root folder:
 ```
-uvicorn player_detection.api.app:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.player_detection.api.app:app --reload --host 0.0.0.0 --port 8000
 curl -X POST "http://localhost:8000/player-detection/image" -F "file=@path_to_your_image.jpg"
 ```
 Example
 ```
- curl -X POST "http://localhost:8000/player-detection/image" -F "file=@player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
+ curl -X POST "http://localhost:8000/player-detection/image" -F "file=@src/player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
 ```
 ### Football ball detection
 
@@ -68,14 +68,14 @@ PYTHONPATH=$PYTHONPATH:./src python src/ball_detection/training/evaluation.py
 
 #### Running the API server
 
-To run the API server, use the following command from the ``src`` folder:
+To run the API server, use the following command from the root folder:
 ```
-uvicorn ball_detection.api.app:app --reload --host 0.0.0.0 --port 8001
+uvicorn src.ball_detection.api.app:app --reload --host 0.0.0.0 --port 8001
 curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@path_to_your_image.jpg"
 ```
 Example:
 ```
-curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@ball_detection/data/yolov8-format/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
+curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@src/ball_detection/data/yolov8-format/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
 ```
 ### Football pitch detection
 
@@ -93,12 +93,12 @@ PYTHONPATH=$PYTHONPATH:./src python src/pitch_detection/training/evaluation.py
 ```
 #### Running the API server
 
-To run the API server, use the following command from the ``src`` folder:
+To run the API server, use the following command from the root folder:
 ```
-uvicorn pitch_detection.api.app:app --reload --host 0.0.0.0 --port 8002
+uvicorn src.pitch_detection.api.app:app --reload --host 0.0.0.0 --port 8002
 curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@path_to_your_image.jpg"
 ```
 Example:
 ```
- curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@pitch_detection/data/yolov8-format/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
+ curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@src/pitch_detection/data/yolov8-format/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
 ```

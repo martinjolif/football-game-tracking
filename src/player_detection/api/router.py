@@ -2,9 +2,9 @@ import asyncio
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from player_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
-from player_detection.api.inference import detect_players_in_image
-from utils.schemas import DetectionInferenceResponse
+from src.player_detection.api.config import ALLOWED_IMG_TYPES, MAX_FILE_SIZE
+from src.player_detection.api.inference import detect_players_in_image
+from src.utils.schemas import DetectionInferenceResponse
 
 router = APIRouter(prefix="/player-detection")
 
