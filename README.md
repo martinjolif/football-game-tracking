@@ -17,6 +17,9 @@ source .venv/bin/activate
 uv sync
 ```
 
+If you want to test the full pipeline with a real football game video as input, you need to download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
+After downloading the video, place it in the ``todo`` folder.
+
 ### Acces MLflow to track experiments
 To get access to mlflow project, run the following command:
 ```
