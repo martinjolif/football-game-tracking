@@ -40,7 +40,7 @@ def visualize_frame(frame, detections, tracker=None, show_trace=False):
 
     # Optionally annotate traces
     if show_trace and tracker is not None:
-        annotated_frame = trace_annotator.annotate(annotated_frame, tracker.tracks)
+        annotated_frame = trace_annotator.annotate(annotated_frame, detections)
 
     return annotated_frame
 
