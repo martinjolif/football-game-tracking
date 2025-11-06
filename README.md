@@ -16,7 +16,7 @@ uv venv
 source .venv/bin/activate
 uv sync
 ```
-
+### Data 
 If you want to test the full pipeline with a real football game video as input, you need to download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
 After downloading the video, place it in the ``todo`` folder.
 
@@ -102,3 +102,7 @@ Example:
 ```
  curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@src/pitch_detection/data/yolov8-format/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
 ```
+
+### Player tracking
+
+Set the variable ``PLAYER_TRACKING_VIZ`` to ``True`` in order to visualize the tracking output by running the ``video_to_frames.py`` script.

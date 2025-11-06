@@ -10,5 +10,7 @@ dependencies = [
     "onnx>=1.19.1",
     "pytest>=8.4.2",
     "python-multipart>=0.0.20",
+    "trackers>=2.0.1",
+    "supervision==0.27.0rc4",
     "ultralytics>=8.3.221",
 ]
