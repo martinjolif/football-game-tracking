@@ -1,3 +1,4 @@
+import io
 import mimetypes
 import os
 from typing import Any, Dict, List, Optional
@@ -6,42 +7,48 @@ import requests
 from fastapi import HTTPException
 
 
-def call_image_api(url: str, image_path: str, timeout: int = 30) -> dict | str:
-    content_type, _ = mimetypes.guess_type(image_path)
-    if content_type is None:
-        content_type = 'application/octet-stream'
-    if not os.path.exists(image_path):
-        raise HTTPException(status_code=400, detail=f"file not found: {image_path}")
-
+def call_image_api(
+        endpoint: str,
+        image_path: Optional[str],
+        image_bytes: Optional[bytes],
+        timeout: int = 30
+) -> dict | str:
+    if image_bytes is None and image_path is None:
+        raise ValueError("Either image_array or image_path must be provided.")
     try:
-        with open(image_path, 'rb') as f:
-            files = {'file': (os.path.basename(image_path), f, content_type)}
+        if image_path:
+            # From a local file
+            content_type, _ = mimetypes.guess_type(image_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+            with open(image_path, "rb") as f:
+                files = {"file": (os.path.basename(image_path), f, content_type)}
+                response = requests.post(endpoint, files=files, timeout=timeout)
+        else:
+            # From bytes (simulate file upload)
+            files = {"file": ("frame.jpg", io.BytesIO(image_bytes), "image/jpeg")}
+            response = requests.post(endpoint, files=files, timeout=timeout)
+
+        if response.status_code == 200:
             try:
-                response = requests.post(url, files=files, timeout=timeout)
-            except requests.exceptions.Timeout as e:
-                raise HTTPException(status_code=504, detail=f"upstream timeout: {e}")
-            except requests.exceptions.ConnectionError as e:
-                raise HTTPException(status_code=502, detail=f"upstream connection error: {e}")
-            except requests.exceptions.RequestException as e:
-                raise HTTPException(status_code=502, detail=f"upstream request failed: {e}")
+                return response.json()
+            except requests.exceptions.JSONDecodeError:
+                return response.text
+        else:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
 
-            if response.status_code == 200:
-                try:
-                    return response.json()
-                except requests.exceptions.JSONDecodeError:
-                    return response.text
-            else:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-
-    except PermissionError as e:
-        raise HTTPException(status_code=400, detail=f"permission denied reading file: {e}")
-    except OSError as e:
-        raise HTTPException(status_code=400, detail=f"cannot read file: {e}")
+    except requests.exceptions.Timeout as e:
+        raise HTTPException(status_code=504, detail=f"upstream timeout: {e}")
+    except requests.exceptions.ConnectionError as e:
+        raise HTTPException(status_code=502, detail=f"upstream connection error: {e}")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"upstream request failed: {e}")
 
 
 def call_image_apis(
-    image_path: str,
     endpoints: Optional[List[str]] = None,
+    image_path: Optional[str] = None,
+    image_bytes: Optional[bytes] = None,
     timeout: int = 15
 ) -> Dict[str, Dict[str, Any]]:
     """
@@ -51,6 +58,9 @@ def call_image_apis(
       - http://localhost:8001/ball-detection/image
       - http://localhost:8002/pitch-detection/image
     """
+    if image_bytes is None and image_path is None:
+        raise ValueError("Either image_array or image_path must be provided.")
+
     if endpoints is None:
         endpoints = [
             "http://localhost:8000/player-detection/image",
@@ -60,5 +70,5 @@ def call_image_apis(
 
     results: Dict[str, Dict[str, Any]] = {}
     for endpoint in endpoints:
-        results[endpoint] = call_image_api(endpoint, image_path, timeout=timeout)
+        results[endpoint] = call_image_api(endpoint, image_path, image_bytes, timeout=timeout)
     return results

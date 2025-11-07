@@ -4,8 +4,8 @@ import time
 from PIL import Image, UnidentifiedImageError
 from ultralytics import YOLO
 
-from ball_detection.api.config import INFERENCE_MODEL_PATH
-from utils.schemas import DetectionInferenceResponse, BoundingBox, Detection
+from src.ball_detection.api.config import INFERENCE_MODEL_PATH
+from src.utils.schemas import DetectionInferenceResponse, BoundingBox, Detection
 
 model = YOLO(INFERENCE_MODEL_PATH)
 #model.export(format="onnx")  # Export the model to ONNX format
