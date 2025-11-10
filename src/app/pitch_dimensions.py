@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
 
     def _small_arc_angles(a1, a2):
-        """
+        r"""
         Return the start and end angles (in degrees) defining the smaller arc between two angles.
 
         Both input angles are normalized to the range \[0, 360). The function computes the
