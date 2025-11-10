@@ -6,15 +6,15 @@ class PitchDimensions:
     https://publications.fifa.com/fr/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/
     """
     def __init__(self):
-        self.width = 68  # Width of the pitch in meters
-        self.length = 105  # Length of the pitch in meters
-        self.penalty_area_length = 16.5  # Length of the penalty area in meters
-        self.penalty_area_width = 40.32  # Width of the penalty area in meters
-        self.goal_area_length = 5.5  # Length of the goal area in meters
-        self.goal_area_width = 18.32  # Width of the goal area in meters
-        self.center_circle_radius = 9.15  # Radius of the center circle in meters
-        self.penalty_circle_radius = 9.15 # Radius of the penalty circle in meters
-        self.penalty_spot_distance = 11  # Distance from the goal line to the penalty spot in meters
+        self.width = 6800  # Width of the pitch in centimeters
+        self.length = 10500  # Length of the pitch in centimeters
+        self.penalty_area_length = 1650  # Length of the penalty area in centimeters
+        self.penalty_area_width = 4032  # Width of the penalty area in centimeters
+        self.goal_area_length = 550  # Length of the goal area in centimeters
+        self.goal_area_width = 1832  # Width of the goal area in centimeters
+        self.center_circle_radius = 915  # Radius of the center circle in centimeters
+        self.penalty_circle_radius = 915 # Radius of the penalty circle in centimeters
+        self.penalty_spot_distance = 1100  # Distance from the goal line to the penalty spot in centimeters
 
     def get_vertices(self):
         """Return the vertices of the pitch as a list of (x, y) tuples."""
