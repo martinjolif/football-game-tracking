@@ -1,4 +1,4 @@
-name: Run tests
+name: Continuous Integration
 on:
   push:
     branches: [ $default-branch ]
@@ -6,7 +6,7 @@ on:
     branches:
       - "*"
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
@@ -18,3 +18,11 @@ jobs:
       - name: Test with Pytest
         run: |
           uv run pytest
+  build-docker-image:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build Docker image
+        run: |
+          docker buildx build --platform linux/arm64/v8,linux/amd64 -t mjolif/football-game-tracking:$(date +%s) -f docker/Dockerfile .
+        
