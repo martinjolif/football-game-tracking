@@ -1,6 +1,6 @@
 # football-game-tracking
 
-### Installation Instructions
+### Local Installation Instructions
 clone the repository
 
 ```
@@ -16,6 +16,18 @@ uv venv
 source .venv/bin/activate
 uv sync
 ```
+
+### Docker Installation
+clone the repository
+
+```
+git clone git@github.com:martinjolif/football-game-tracking.git
+cd football-game-tracking
+docker build -t <docker-username>/football-game-tracking -f docker/Dockerfile .
+docker run -p 8000:8000 <docker-username>/football-game-tracking   
+```
+
+
 ### Data 
 If you want to test the full pipeline with a real football game video as input, you need to download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
 After downloading the video, place it in the ``todo`` folder.
@@ -106,3 +118,11 @@ Example:
 ### Player tracking
 
 Set the variable ``PLAYER_TRACKING_VIZ`` to ``True`` in order to visualize the tracking output by running the ``video_to_frames.py`` script.
+
+### Team classification
+
+Goal: identify player team from their corresponding crop images found by the player detection part. 
+
+Unfortunately, identification via the average color pixels of the crop isn't working well due to several things: background (grass, stands, other players...), size of the crops vary a lot, lightning.
+
+### 2D pitch radar  
