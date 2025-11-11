@@ -20,6 +20,6 @@ WORKDIR /app
 COPY . /app
 
 # Synchronize uv env
-RUN uv venv && . .venv/bin/activate && uv sync --no-dev
+RUN uv venv && uv sync --no-dev
 
-ENTRYPOINT ["uv", "run", "--no-sync", "uvicorn",  "src.player_detection.api.app:app",  "--reload", "--host", "0.0.0.0", "--port",  "8000"]
+ENTRYPOINT ["uv", "run", "--no-sync", "uvicorn",  "src.player_detection.api.app:app", "--host", "0.0.0.0", "--port",  "8000"]
