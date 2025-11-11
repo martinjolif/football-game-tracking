@@ -19,3 +19,7 @@ dev = [
     "mlflow>=3.6.0",
     "pytest>=9.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
