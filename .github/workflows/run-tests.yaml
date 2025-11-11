@@ -1,0 +1,20 @@
+name: Run tests
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches:
+      - *
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv sync
+      - name: Test with Pytest
+        run: |
+          uv run pytest
