@@ -6,11 +6,16 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.120.1",
-    "mlflow>=3.5.1",
     "onnx>=1.19.1",
-    "pytest>=8.4.2",
     "python-multipart>=0.0.20",
     "trackers>=2.0.1",
     "supervision==0.27.0rc4",
     "ultralytics>=8.3.221",
+    "uvicorn>=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "mlflow>=3.6.0",
+    "pytest>=9.0.0",
 ]
