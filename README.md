@@ -26,6 +26,9 @@ docker buildx build --platform linux/arm64/v8,linux/amd64 -t <docker-username>/f
 docker run -p 8000:8000 <docker-username>/football-game-tracking   
 ```
 
+```
+docker pull mjolif/football-game-tracking
+```
 
 ### Data 
 If you want to test the full pipeline with a real football game video as input, you need to download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
@@ -37,6 +40,12 @@ To get access to mlflow project, run the following command:
  mlflow server --backend-store-uri football-game-tracking/runs/mlflow
 ```
 then open http://127.0.0.1:5000/
+
+### Run tests
+
+```
+uv run pytest
+```
 
 ### Football player detection
 
