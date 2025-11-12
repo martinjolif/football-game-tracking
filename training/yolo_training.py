@@ -28,17 +28,21 @@ def train_yolo(
         task="detect"
     else:
         raise ValueError(f"Unsupported detection type: {detection_type}, must be one of 'ball', 'player', or 'pitch'.")
-    # Finetune the model on my custom dataset
-    model.train(
-        data=data_yaml,
-        epochs=epochs,
-        batch=train_batch_size,
-        imgsz=imgsz,
-        task=task,
-        project=model_dir,
-        name=f"football-{detection_type}-detection-{Path(model_checkpoint_path).stem}",
-        device=device
-    )
+    train_kwargs = {
+        "data": data_yaml,
+        "epochs": epochs,
+        "batch": train_batch_size,
+        "imgsz": imgsz,
+        "task": task,
+        "project": model_dir,
+        "name": f"football-{detection_type}-detection-{Path(model_checkpoint_path).stem}",
+        "device": device
+    }
+    if task == "pose":
+        train_kwargs["mosaic"] = 0.0
+
+    # Finetune the model on custom dataset
+    model.train(**train_kwargs)
 
     # Evaluate on the test set (must be defined in data.yaml)
     results = model.val(data=data_yaml, imgsz=imgsz, batch=eval_batch_size, device=device, plots=plots, split="test")
