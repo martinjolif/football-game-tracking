@@ -11,10 +11,10 @@ def render_pitch_radar(
     player_detection_output: sv.Detections,
     ball_detection_output: sv.Detections,
     pitch_detection_output: sv.KeyPoints,
+    filter
 ):
     pitch_dimensions = PitchDimensions()
-    filter = pitch_detection_output.confidence[0] > 0.5
-    frame_points = pitch_detection_output.xy[0][filter]
+    frame_points = pitch_detection_output.xy[0]
     pitch_points = np.array(pitch_dimensions.get_vertices())[filter]
     homography = Homography(source=frame_points, target=pitch_points)
 
@@ -86,7 +86,7 @@ def draw_pitch(
         dtype=np.uint8
     ) * np.array(background_color.as_bgr(), dtype=np.uint8)
 
-    for start, end in config.get_edges():
+    for start, end in config.edges:
         point1 = (int(config.get_vertices()[start - 1][0] * scale) + padding,
                   int(config.get_vertices()[start - 1][1] * scale) + padding)
         point2 = (int(config.get_vertices()[end - 1][0] * scale) + padding,
