@@ -49,6 +49,7 @@ class PitchDimensions:
             (self.length, (self.width + self.goal_area_width) / 2), #30
             (self.length, (self.width + self.penalty_area_width) / 2), #31
             (self.length, self.width), #32
+            # The following two vertices correspond to pitch vertex IDs 14 and 19, not their list positions.
             (self.length / 2 - self.center_circle_radius, self.width / 2),  # 14
             (self.length / 2 + self.center_circle_radius, self.width / 2),  # 19
 
