@@ -10,8 +10,8 @@ def collect_class_ids(
     roles=None,
 ) -> list:
     """
-    Récupère les clés de classes pour les rôles fournis depuis `results[endpoint][mapping_key]`,
-    convertit en int, ignore les valeurs non convertibles et renvoie une liste d'entiers uniques triés.
+    Retrieves class keys for provided roles from `results[endpoint][mapping_key]`,
+    converts to int, ignores non-convertible values and returns a sorted list of unique integers.
     """
     if roles is None:
         raise ValueError("roles is missing.")
