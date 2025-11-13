@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 import supervision as sv
 
-from homography import Homography
-from pitch_dimensions import PitchDimensions
+from src.app.homography import Homography
+from src.app.pitch_dimensions import PitchDimensions
 
 def render_pitch_radar(
     player_detection_output: sv.Detections,
