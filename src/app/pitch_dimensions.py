@@ -52,7 +52,6 @@ class PitchDimensions:
             # The following two vertices correspond to pitch vertex IDs 14 and 19, not their list positions.
             (self.length / 2 - self.center_circle_radius, self.width / 2),  # 14
             (self.length / 2 + self.center_circle_radius, self.width / 2),  # 19
-
         ]
 
     edges = [
