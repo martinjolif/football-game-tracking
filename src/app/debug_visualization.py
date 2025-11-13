@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import supervision as sv
 from typing import Optional
-from pitch_dimensions import PitchDimensions
+from src.app.pitch_dimensions import PitchDimensions
 
 pitch_dimensions = PitchDimensions()
 PLAYER_COLORS = ['#696969', '#FF0000', '#FF6347', '#FFD700']
