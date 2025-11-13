@@ -1,17 +1,11 @@
 import cv2
+import numpy as np
 import supervision as sv
+from typing import Optional
 from pitch_dimensions import PitchDimensions
 
 pitch_dimensions = PitchDimensions()
 PLAYER_COLORS = ['#696969', '#FF0000', '#FF6347', '#FFD700']
-VERTEX_LABEL_ANNOTATOR = sv.VertexLabelAnnotator(
-    color=[sv.Color.from_hex(color) for color in pitch_dimensions.colors],
-    text_color=sv.Color.from_hex('#FFFFFF'),
-    border_radius=5,
-    text_thickness=1,
-    text_scale=0.5,
-    text_padding=5,
-)
 PLAYER_BOX_ANNOTATOR = sv.BoxAnnotator(
     color=sv.ColorPalette.from_hex(PLAYER_COLORS),
     thickness=2
@@ -70,12 +64,25 @@ def render_detection_results(
         frame,
         player_detections: sv.Detections = None,
         ball_detection: sv.Detections = None,
-        pitch_detection: sv.KeyPoints = None
+        pitch_detection: sv.KeyPoints = None,
+        filter: Optional[list[bool]] = None
 ):
     annotated_frame = frame.copy()
+    if filter is None:
+        mask = np.ones(len(pitch_dimensions.colors), dtype=bool)
+    else:
+        mask = np.array(filter)
     if pitch_detection is not None:
+        VERTEX_LABEL_ANNOTATOR = sv.VertexLabelAnnotator(
+            color=[sv.Color.from_hex(color) for color in np.array(pitch_dimensions.colors)[mask]],
+            text_color=sv.Color.from_hex('#FFFFFF'),
+            border_radius=5,
+            text_thickness=1,
+            text_scale=0.5,
+            text_padding=5,
+        )
         annotated_frame = VERTEX_LABEL_ANNOTATOR.annotate(
-            annotated_frame, pitch_detection, pitch_dimensions.labels
+            annotated_frame, pitch_detection, np.array(pitch_dimensions.labels)[mask].tolist()
         )
     if player_detections is not None:
         annotated_frame = PLAYER_BOX_LABEL_ANNOTATOR.annotate(

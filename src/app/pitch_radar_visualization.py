@@ -14,8 +14,8 @@ def render_pitch_radar(
     filter
 ):
     pitch_dimensions = PitchDimensions()
-    frame_points = pitch_detection_output.xy[0]
-    pitch_points = np.array(pitch_dimensions.get_vertices())[filter]
+    frame_points = pitch_detection_output.xy[0].astype(np.float32)
+    pitch_points = np.array(pitch_dimensions.get_vertices())[filter].astype(np.float32)
     homography = Homography(source=frame_points, target=pitch_points)
 
     frame_ball_xy = ball_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)

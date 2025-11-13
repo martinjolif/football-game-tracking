@@ -19,48 +19,48 @@ class PitchDimensions:
     def get_vertices(self):
         """Return the vertices of the pitch as a list of (x, y) tuples."""
         return [
-            (0, self.width), #1
-            (0, (self.width + self.penalty_area_width) / 2), #2
-            (0, (self.width + self.goal_area_width) / 2), #3
-            (0, (self.width - self.goal_area_width) / 2), #4
-            (0, (self.width - self.penalty_area_width) / 2), #5
-            (0, 0), #6
-            (self.goal_area_length, (self.width + self.goal_area_width) / 2), #7
-            (self.goal_area_length, (self.width - self.goal_area_width) / 2), #8
+            (0, 0), #1
+            (0, (self.width - self.penalty_area_width) / 2), #2
+            (0, (self.width - self.goal_area_width) / 2), #3
+            (0, (self.width + self.goal_area_width) / 2), #4
+            (0, (self.width + self.penalty_area_width) / 2), #5
+            (0, self.width), #6
+            (self.goal_area_length, (self.width - self.goal_area_width) / 2), #7
+            (self.goal_area_length, (self.width + self.goal_area_width) / 2), #8
             (self.penalty_spot_distance, self.width / 2), #9
-            (self.penalty_area_length, (self.width + self.penalty_area_width) / 2), #10
-            (self.penalty_area_length, self.width / 2 + math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #11
-            (self.penalty_area_length, self.width / 2 - math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #12
-            (self.penalty_area_length, (self.width - self.penalty_area_width) / 2), #13
-            (self.length / 2 - self.center_circle_radius, self.width / 2), #14
-            (self.length / 2, self.width), #15
-            (self.length / 2, self.width / 2 + self.center_circle_radius),  # 16
-            (self.length / 2, self.width / 2 - self.center_circle_radius), #17
-            (self.length / 2, 0), #18
-            (self.length / 2 + self.center_circle_radius, self.width / 2), #19
-            (self.length - self.penalty_area_length, (self.width + self.penalty_area_width) / 2), #20
-            (self.length - self.penalty_area_length, self.width / 2 + math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #21
-            (self.length - self.penalty_area_length, self.width / 2 - math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #22
-            (self.length - self.penalty_area_length, (self.width - self.penalty_area_width) / 2), #23
+            (self.penalty_area_length, (self.width - self.penalty_area_width) / 2), #10
+            (self.penalty_area_length, self.width / 2 - math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #11
+            (self.penalty_area_length, self.width / 2 + math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #12
+            (self.penalty_area_length, (self.width + self.penalty_area_width) / 2), #13
+            (self.length / 2, 0), #15
+            (self.length / 2, self.width / 2 - self.center_circle_radius),  # 16
+            (self.length / 2, self.width / 2 + self.center_circle_radius), #17
+            (self.length / 2, self.width), #18
+            (self.length - self.penalty_area_length, (self.width - self.penalty_area_width) / 2), #20
+            (self.length - self.penalty_area_length, self.width / 2 - math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #21
+            (self.length - self.penalty_area_length, self.width / 2 + math.sqrt((self.penalty_circle_radius ** 2) - (self.penalty_area_length - self.penalty_spot_distance) ** 2)), #22
+            (self.length - self.penalty_area_length, (self.width + self.penalty_area_width) / 2), #23
             (self.length - self.penalty_spot_distance, self.width / 2), #24
-            (self.length - self.goal_area_length, (self.width + self.goal_area_width) / 2), #25
-            (self.length - self.goal_area_length, (self.width - self.goal_area_width) / 2), #26
-            (self.length, self.width), #27
-            (self.length, (self.width + self.penalty_area_width) / 2), #28
-            (self.length, (self.width + self.goal_area_width) / 2), #29
-            (self.length, (self.width - self.goal_area_width) / 2), #30
-            (self.length, (self.width - self.penalty_area_width) / 2), #31
-            (self.length, 0), #32
+            (self.length - self.goal_area_length, (self.width - self.goal_area_width) / 2), #25
+            (self.length - self.goal_area_length, (self.width + self.goal_area_width) / 2), #26
+            (self.length, 0), #27
+            (self.length, (self.width - self.penalty_area_width) / 2), #28
+            (self.length, (self.width - self.goal_area_width) / 2), #29
+            (self.length, (self.width + self.goal_area_width) / 2), #30
+            (self.length, (self.width + self.penalty_area_width) / 2), #31
+            (self.length, self.width), #32
+            # The following two vertices correspond to pitch vertex IDs 14 and 19, not their list positions.
+            (self.length / 2 - self.center_circle_radius, self.width / 2),  # 14
+            (self.length / 2 + self.center_circle_radius, self.width / 2),  # 19
         ]
 
     edges = [
-        (1, 2), (2, 3), (3, 4), (3, 7), (7, 8), (8, 4), (4, 5), (5, 6),
-        (5, 13), (2, 10), (10, 11), (11, 12), (12, 13),
-        (15, 16), (16, 17), (17, 18),
-        (20, 21), (21, 22), (22, 23), (25, 26),
-        (27, 28), (28, 29), (29, 30), (29, 25), (30, 31), (31, 32),
-        (1, 15), (15, 27), (20, 28), (23, 31),
-        (6, 18), (18, 32), (26, 30),
+        (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (7, 8),
+        (10, 11), (11, 12), (12, 13), (14, 15), (15, 16),
+        (16, 17), (18, 19), (19, 20), (20, 21), (23, 24),
+        (25, 26), (26, 27), (27, 28), (28, 29), (29, 30),
+        (1, 14), (2, 10), (3, 7), (4, 8), (5, 13), (6, 17),
+        (14, 25), (18, 26), (23, 27), (24, 28), (21, 29), (17, 30)
     ]
 
     colors = [

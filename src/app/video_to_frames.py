@@ -121,7 +121,8 @@ try:
                 frame,
                 player_detection,
                 ball_detection,
-                pitch_detection
+                pitch_detection,
+                filter
             )
 
         elif PLAYER_TRACKING_VIZ:
