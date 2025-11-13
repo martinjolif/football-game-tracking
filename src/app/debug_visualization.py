@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import supervision as sv
-
+from typing import Optional
 from pitch_dimensions import PitchDimensions
 
 pitch_dimensions = PitchDimensions()
@@ -65,7 +65,7 @@ def render_detection_results(
         player_detections: sv.Detections = None,
         ball_detection: sv.Detections = None,
         pitch_detection: sv.KeyPoints = None,
-        filter = None
+        filter: Optional[list[bool]] = None
 ):
     annotated_frame = frame.copy()
     if filter is None:
