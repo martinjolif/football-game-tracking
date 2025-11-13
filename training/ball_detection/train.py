@@ -1,6 +1,6 @@
 from config import (TRAIN_BATCH_SIZE, EVAL_BATCH_SIZE, EPOCHS, IMG_SIZE, DEVICE, MODEL_NAME, DATA_ROOT, MODEL_DIR,
                     PLOTS)
-from utils.yolo_training import train_yolo
+from training.yolo_training import train_yolo
 import os
 
 train_yolo(
@@ -13,5 +13,5 @@ train_yolo(
     IMG_SIZE,
     DEVICE,
     PLOTS,
-    detection_type="player",
+    detection_type="ball"
 )

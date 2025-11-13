@@ -14,7 +14,7 @@ def call_image_api(
         timeout: int = 30
 ) -> dict | str:
     if image_bytes is None and image_path is None:
-        raise ValueError("Either image_array or image_path must be provided.")
+        raise ValueError("Either image_bytes or image_path must be provided.")
     try:
         if image_path:
             # From a local file
@@ -59,7 +59,7 @@ def call_image_apis(
       - http://localhost:8002/pitch-detection/image
     """
     if image_bytes is None and image_path is None:
-        raise ValueError("Either image_array or image_path must be provided.")
+        raise ValueError("Either image_bytes or image_path must be provided.")
 
     if endpoints is None:
         endpoints = [

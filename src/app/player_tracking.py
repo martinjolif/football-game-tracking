@@ -43,30 +43,3 @@ def visualize_frame(frame, detections, tracker=None, show_trace=False):
         annotated_frame = trace_annotator.annotate(annotated_frame, detections)
 
     return annotated_frame
-
-
-def detections_from_results(results, confidence_threshold=0):
-    """
-    Converts API results into a Supervision Detections object.
-
-    Parameters:
-        results (dict): Dictionary returned by call_image_apis().
-        confidence_threshold (float): Minimum confidence to keep a detection.
-
-    Returns:
-        sv.Detections: Detections object with xyxy, confidence, and class_id.
-    """
-    print(results)
-    # Filter detections by confidence
-    filtered_detection = [d for d in results if d.get("confidence", 0) > confidence_threshold]
-    print(filtered_detection)
-
-    if not filtered_detection:
-        return sv.Detections(xyxy=np.empty((0, 4)), confidence=np.array([]), class_id=np.array([]))
-
-    # Convert to numpy arrays
-    xyxy = np.array([[d['bbox']['x0'], d['bbox']['y0'], d['bbox']['x1'], d['bbox']['y1']] for d in filtered_detection])
-    confidences = np.array([d['confidence'] for d in filtered_detection])
-    class_ids = np.array([d['detected_class_id'] for d in filtered_detection])
-
-    return sv.Detections(xyxy=xyxy, confidence=confidences, class_id=class_ids)

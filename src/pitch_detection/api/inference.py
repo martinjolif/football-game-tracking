@@ -4,7 +4,7 @@ import time
 from PIL import Image, UnidentifiedImageError
 from ultralytics import YOLO
 
-from src.pitch_detection.api.config import INFERENCE_MODEL_PATH
+from src.pitch_detection.api.config import INFERENCE_MODEL_PATH, DEVICE
 from src.utils.schemas import PoseInferenceResponse, Pose, BoundingBox, Keypoint
 
 model = YOLO(INFERENCE_MODEL_PATH)
@@ -19,7 +19,7 @@ def detect_pitch_in_image(image_bytes: bytes) -> PoseInferenceResponse:
         raise ValueError("The input data is not a valid image") from e
 
     start_time = time.perf_counter()
-    results = model(image_pil)
+    results = model(image_pil, device=DEVICE)
     end_time = time.perf_counter()
     inference_time = end_time - start_time
     poses = []

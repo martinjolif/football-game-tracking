@@ -1,9 +1,15 @@
+import torch
 # Global configuration settings for training and evaluating a YOLO object detection model
 IMG_SIZE = 640
-DEVICE = "mps"  # or "cpu", "0" for GPU
+if torch.cuda.is_available():
+    DEVICE = "0"
+elif torch.backends.mps.is_available():
+    DEVICE = "mps"
+else:
+    DEVICE = "cpu"
 MODEL_NAME = "yolov8n" # Pretrained YOLO model name
-DATA_ROOT = "src/ball_detection/data/yolov8-format" # Root directory for dataset
-MODEL_DIR = "src/ball_detection/models" # Directory to save trained models
+DATA_ROOT = "training/ball_detection/data/yolov8-format" # Root directory for dataset
+MODEL_DIR = "training/ball_detection/models" # Directory to save trained models
 
 # Training configuration parameters for YOLO object tracking model
 TRAIN_BATCH_SIZE = 16
