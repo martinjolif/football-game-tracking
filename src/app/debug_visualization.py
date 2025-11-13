@@ -68,7 +68,10 @@ def render_detection_results(
         filter = None
 ):
     annotated_frame = frame.copy()
-    mask = np.array(filter)
+    if filter is None:
+        mask = np.ones(len(pitch_dimensions.colors), dtype=bool)
+    else:
+        mask = np.array(filter)
     if pitch_detection is not None:
         VERTEX_LABEL_ANNOTATOR = sv.VertexLabelAnnotator(
             color=[sv.Color.from_hex(color) for color in np.array(pitch_dimensions.colors)[mask]],
