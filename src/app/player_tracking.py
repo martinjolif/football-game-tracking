@@ -1,7 +1,6 @@
 import numpy as np
 import supervision as sv
 
-# Initialize annotators (reuse your existing setup)
 color = sv.ColorPalette.from_hex([
     "#ffff00", "#ff9b00", "#ff8080", "#ff66b2", "#ff66ff", "#b266ff",
     "#9999ff", "#3399ff", "#66ffff", "#33ff99", "#66ff66", "#99ff00"
@@ -16,14 +15,19 @@ label_annotator = sv.LabelAnnotator(
     text_scale=0.8
 )
 
-def visualize_frame(frame, detections, tracker=None, show_trace=False):
+def visualize_frame(
+        frame: np.ndarray,
+        detections: sv.Detections,
+        tracker: sv.ByteTrack = None,
+        show_trace: bool = False
+):
     """
     Annotates a frame with bounding boxes, labels, and optionally traces.
 
     Parameters:
         frame (np.ndarray): The original frame from the video.
         detections (sv.Detections): Detections object with xyxy, confidence, class_id, tracker_id.
-        tracker (optional): Tracker object, required if show_trace=True.
+        tracker (optional): Tracker object
         show_trace (bool): Whether to draw trace lines for tracked objects.
 
     Returns:
@@ -35,7 +39,7 @@ def visualize_frame(frame, detections, tracker=None, show_trace=False):
     annotated_frame = box_annotator.annotate(annotated_frame, detections)
 
     # Annotate labels (tracker IDs)
-    labels = [str(tid) for tid in detections.tracker_id]
+    labels = [str(tracker_id) for tracker_id in detections.tracker_id]
     annotated_frame = label_annotator.annotate(annotated_frame, detections, labels)
 
     # Optionally annotate traces

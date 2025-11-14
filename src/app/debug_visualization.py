@@ -1,7 +1,9 @@
+from typing import Optional
+
 import cv2
 import numpy as np
 import supervision as sv
-from typing import Optional
+
 from src.app.pitch_dimensions import PitchDimensions
 
 pitch_dimensions = PitchDimensions()
@@ -32,8 +34,13 @@ BALL_BOX_LABEL_ANNOTATOR = sv.LabelAnnotator(
 LEGEND_COLORS = PLAYER_COLORS + list(dict.fromkeys(pitch_dimensions.colors)) + BALL_COLOR
 LEGEND_ITEMS = list(zip(['ball', 'goalkeeper', 'player', 'referee', 'left-keypoints', 'center-keypoints', 'right-keypoints', 'ball'], LEGEND_COLORS))
 
-
-def draw_legend(frame, legend_items, start_pos=(10, 30), box_size=20, spacing=30):
+def draw_legend(
+        frame: np.ndarray,
+        legend_items: list[tuple[str, str]],
+        start_pos: tuple[float, float] = (10, 30),
+        box_size: float = 20,
+        spacing: float = 30
+) -> np.ndarray:
     """
     Draw a simple legend on the frame.
 
@@ -43,37 +50,62 @@ def draw_legend(frame, legend_items, start_pos=(10, 30), box_size=20, spacing=30
     box_size: size of the color box
     spacing: vertical spacing between legend items
     """
-    for i, (label, hex_color) in enumerate(legend_items):
-        y = start_pos[1] + i * spacing
+    for item_index, (label, hex_color) in enumerate(legend_items):
+        y = start_pos[1] + item_index * spacing
         color = sv.Color.from_hex(hex_color).as_bgr()
         # Draw color box
-        cv2.rectangle(frame, (start_pos[0], y - box_size), (start_pos[0] + box_size, y), color, -1)
+        cv2.rectangle(frame, (int(start_pos[0]), int(y - box_size)), (int(start_pos[0] + box_size), int(y)), color, -1)
         # Draw label text
         cv2.putText(
             frame,
             label,
-            (start_pos[0] + box_size + 5, y - 5),
+            (int(start_pos[0] + box_size + 5), int(y - 5)),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.6,
-            (255, 255, 255),
+            (255, 255, 255), #white
             2
         )
     return frame
 
 def render_detection_results(
-        frame,
+        frame: np.ndarray,
         player_detections: sv.Detections = None,
         ball_detection: sv.Detections = None,
         pitch_detection: sv.KeyPoints = None,
-        filter: Optional[list[bool]] = None
-):
+        keypoint_mask: Optional[list[bool]] = None
+) -> np.ndarray:
+    """
+        Render detection results on a copy of the input frame.
+
+        Draws pitch keypoints and labels, player boxes/labels, ball box/label, and a legend,
+        using preconfigured `supervision` annotators.
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            Source image in BGR format with shape \((H, W, 3)\).
+        player_detections : sv.Detections, optional
+            Detections for players/referees. If `None`, player annotations are skipped.
+        ball_detection : sv.Detections, optional
+            Detection for the ball. If `None`, ball annotations are skipped.
+        pitch_detection : sv.KeyPoints, optional
+            Pitch keypoints to annotate with labels. If `None`, keypoint annotations are skipped.
+        keypoint_mask : list[bool], optional
+            Boolean mask selecting which pitch keypoints/colors/labels to draw. Its length must
+            match the number of configured pitch colors \(`len(pitch_dimensions.colors)`\).
+
+        Returns
+        -------
+        np.ndarray
+            The annotated image, same size as `frame`.
+        """
     annotated_frame = frame.copy()
-    if filter is None:
+    if keypoint_mask is None:
         mask = np.ones(len(pitch_dimensions.colors), dtype=bool)
     else:
-        mask = np.array(filter)
+        mask = np.array(keypoint_mask)
     if pitch_detection is not None:
-        VERTEX_LABEL_ANNOTATOR = sv.VertexLabelAnnotator(
+        vertex_label_annotator = sv.VertexLabelAnnotator(
             color=[sv.Color.from_hex(color) for color in np.array(pitch_dimensions.colors)[mask]],
             text_color=sv.Color.from_hex('#FFFFFF'),
             border_radius=5,
@@ -81,7 +113,7 @@ def render_detection_results(
             text_scale=0.5,
             text_padding=5,
         )
-        annotated_frame = VERTEX_LABEL_ANNOTATOR.annotate(
+        annotated_frame = vertex_label_annotator.annotate(
             annotated_frame, pitch_detection, np.array(pitch_dimensions.labels)[mask].tolist()
         )
     if player_detections is not None:

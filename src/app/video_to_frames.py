@@ -83,6 +83,7 @@ try:
             ],
             image_bytes=frame_bytes)
 
+        keypoint_mask = None
         if not (DEBUG_ALL or DEBUG_PLAYER_DETECTION or PLAYER_TRACKING_VIZ or PITCH_RADAR_VIZ):
             player_detection = None
         else:
@@ -110,19 +111,20 @@ try:
         if not (DEBUG_ALL or DEBUG_PITCH_DETECTION or PITCH_RADAR_VIZ):
             pitch_detection = None
         else:
-            pitch_detection, filter = keypoints_from_pose_results(
+            pitch_detection, keypoint_mask = keypoints_from_pose_results(
                 results["http://localhost:8002/pitch-detection/image"],
                 confidence_threshold=0.5
             )
+            # There is one object in the image: football pitch
+            keypoint_mask = keypoint_mask[0]
 
         if DEBUG_ALL or DEBUG_PLAYER_DETECTION or DEBUG_BALL_DETECTION or DEBUG_PITCH_DETECTION:
-            h, w, _ = frame.shape
             annotated_frame = render_detection_results(
                 frame,
                 player_detection,
                 ball_detection,
                 pitch_detection,
-                filter
+                keypoint_mask=keypoint_mask
             )
 
         elif PLAYER_TRACKING_VIZ:
@@ -137,12 +139,7 @@ try:
         elif PITCH_RADAR_VIZ:
             h, w, _ = frame.shape
             annotated_frame = frame.copy()
-            radar = render_pitch_radar(
-                player_detection,
-                ball_detection,
-                pitch_detection,
-                filter
-            )
+            radar = render_pitch_radar(player_detection, ball_detection, pitch_detection, keypoint_mask)
             radar = sv.resize_image(radar, (w//2, h//2))
             radar_h, radar_w, _ = radar.shape
             rect = sv.Rect(

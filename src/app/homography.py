@@ -18,8 +18,8 @@ class Homography:
 
         source = source.astype(np.float32)
         target = target.astype(np.float32)
-        self.m, _ = cv2.findHomography(source, target)
-        if self.m is None:
+        self.homography_matrix, _ = cv2.findHomography(source, target)
+        if self.homography_matrix is None:
             raise ValueError("Homography matrix could not be calculated.")
 
     def transform_points(self, points: np.ndarray) -> np.ndarray:
@@ -39,5 +39,5 @@ class Homography:
             raise ValueError("Points must be 2D coordinates.")
 
         reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
-        transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
+        transformed_points = cv2.perspectiveTransform(reshaped_points, self.homography_matrix)
         return transformed_points.reshape(-1, 2).astype(np.float32)

@@ -1,11 +1,10 @@
 import io
 import mimetypes
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from fastapi import HTTPException
-
 
 def call_image_api(
         endpoint: str,
@@ -21,9 +20,15 @@ def call_image_api(
             content_type, _ = mimetypes.guess_type(image_path)
             if content_type is None:
                 content_type = "application/octet-stream"
-            with open(image_path, "rb") as f:
-                files = {"file": (os.path.basename(image_path), f, content_type)}
-                response = requests.post(endpoint, files=files, timeout=timeout)
+            try:
+                with open(image_path, "rb") as f:
+                    file_content = f.read()
+            except FileNotFoundError:
+                raise HTTPException(status_code=404, detail=f"File not found: {image_path}")
+            except PermissionError:
+                raise HTTPException(status_code=403, detail=f"Permission denied: {image_path}")
+            files = {"file": (os.path.basename(image_path), file_content, content_type)}
+            response = requests.post(endpoint, files=files, timeout=timeout)
         else:
             # From bytes (simulate file upload)
             files = {"file": ("frame.jpg", io.BytesIO(image_bytes), "image/jpeg")}
@@ -50,9 +55,10 @@ def call_image_apis(
     image_path: Optional[str] = None,
     image_bytes: Optional[bytes] = None,
     timeout: int = 15
-) -> Dict[str, Dict[str, Any]]:
+) -> Dict[str, Union[dict, str, Dict[str, Any]]]:
     """
-    Send the same image to several endpoints and return a list of responses.
+    Sends the same image to several endpoints and returns a dictionary mapping each endpoint URL
+    to its response (JSON, text, or error dict).
     By default, the endpoints are:
       - http://localhost:8000/player-detection/image
       - http://localhost:8001/ball-detection/image
@@ -70,5 +76,8 @@ def call_image_apis(
 
     results: Dict[str, Dict[str, Any]] = {}
     for endpoint in endpoints:
-        results[endpoint] = call_image_api(endpoint, image_path, image_bytes, timeout=timeout)
+        try:
+            results[endpoint] = call_image_api(endpoint, image_path, image_bytes, timeout=timeout)
+        except HTTPException as e:
+            results[endpoint] = {"error": str(e.detail), "status_code": e.status_code}
     return results

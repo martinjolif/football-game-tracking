@@ -11,11 +11,22 @@ def render_pitch_radar(
     player_detection_output: sv.Detections,
     ball_detection_output: sv.Detections,
     pitch_detection_output: sv.KeyPoints,
-    filter
-):
+    keypoint_mask: np.ndarray,
+) -> np.ndarray:
+    """
+        Generates a soccer pitch visualization with player and ball positions overlaid.
+        Args:
+            player_detection_output (sv.Detections): Player detection results containing anchor coordinates.
+            ball_detection_output (sv.Detections): Ball detection results containing anchor coordinates.
+            pitch_detection_output (sv.KeyPoints): Keypoint detections for the pitch corners and features.
+            keypoint_mask (np.ndarray): Boolean mask selecting valid pitch keypoints.
+
+        Returns:
+            np.ndarray: Annotated image of the soccer pitch with player and ball positions.
+    """
     pitch_dimensions = PitchDimensions()
     frame_points = pitch_detection_output.xy[0].astype(np.float32)
-    pitch_points = np.array(pitch_dimensions.get_vertices())[filter].astype(np.float32)
+    pitch_points = np.array(pitch_dimensions.get_vertices())[keypoint_mask].astype(np.float32)
     homography = Homography(source=frame_points, target=pitch_points)
 
     frame_ball_xy = ball_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
@@ -86,26 +97,27 @@ def draw_pitch(
         dtype=np.uint8
     ) * np.array(background_color.as_bgr(), dtype=np.uint8)
 
+    config_vertices = config.get_vertices()
     for start, end in config.edges:
-        point1 = (int(config.get_vertices()[start - 1][0] * scale) + padding,
-                  int(config.get_vertices()[start - 1][1] * scale) + padding)
-        point2 = (int(config.get_vertices()[end - 1][0] * scale) + padding,
-                  int(config.get_vertices()[end - 1][1] * scale) + padding)
+        edge_start_point = (int(config_vertices[start - 1][0] * scale) + padding,
+                            int(config_vertices[start - 1][1] * scale) + padding)
+        edge_end_point = (int(config_vertices[end - 1][0] * scale) + padding,
+                          int(config_vertices[end - 1][1] * scale) + padding)
         cv2.line(
             img=pitch_image,
-            pt1=point1,
-            pt2=point2,
+            pt1=edge_start_point,
+            pt2=edge_end_point,
             color=line_color.as_bgr(),
             thickness=line_thickness
         )
 
-    centre_circle_center = (
+    center_circle_center = (
         scaled_length // 2 + padding,
         scaled_width // 2 + padding
     )
     cv2.circle(
         img=pitch_image,
-        center=centre_circle_center,
+        center=center_circle_center,
         radius=scaled_circle_radius,
         color=line_color.as_bgr(),
         thickness=line_thickness
@@ -176,10 +188,10 @@ def draw_points_on_pitch(
             scale=scale
         )
 
-    for point in xy:
+    for coordinate in xy:
         scaled_point = (
-            int(point[0] * scale) + padding,
-            int(point[1] * scale) + padding
+            int(coordinate[0] * scale) + padding,
+            int(coordinate[1] * scale) + padding
         )
         cv2.circle(
             img=pitch,
