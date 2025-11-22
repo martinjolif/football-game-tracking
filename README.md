@@ -118,6 +118,7 @@ curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@<path_to_you
 uvicorn src.pitch_detection.api.app:app --reload --host 0.0.0.0 --port 8002
 curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@<path_to_your_image.jpg>"
 ```
+Make sure to update the ``src/player_detection/api/config.py`` file with the correct path to your model weights.
 
 Call examples
 ```
