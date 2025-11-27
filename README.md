@@ -25,7 +25,7 @@ uv venv
 uv sync
 ```
 
-### Acces MLflow to track experiments
+### Access MLflow to track experiments
 To get access to mlflow project, run the following command:
 ```
 mlflow server \
@@ -166,6 +166,6 @@ docker run -p 8000:8000 mjolif/football-game-tracking
 ```
 Call the API:
 ```
-curl -X POST "http://<ip-adress>:8000/player-detection/image" \
+curl -X POST "http://<ip-address>:8000/player-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
 ```
