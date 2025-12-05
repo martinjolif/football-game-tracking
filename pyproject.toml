@@ -14,12 +14,14 @@ dependencies = [
     "uvicorn>=0.38.0",
     "umap-learn>=0.5.9.post2",
     "transformers>=4.57.3",
+    "opencv-python>=4.11.0.86",
 ]
 
 [dependency-groups]
 dev = [
     "mlflow>=3.6.0",
     "pytest>=9.0.0",
+    "soccernet>=0.1.62",
 ]
 
 [tool.pytest.ini_options]
