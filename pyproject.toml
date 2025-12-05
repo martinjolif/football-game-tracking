@@ -12,6 +12,8 @@ dependencies = [
     "supervision==0.27.0rc4",
     "ultralytics>=8.3.221",
     "uvicorn>=0.38.0",
+    "umap-learn>=0.5.9.post2",
+    "transformers>=4.57.3",
 ]
 
 [dependency-groups]
