@@ -78,6 +78,18 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 ```
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
 
+#### Team clustering
+
+Extract frames from videos (SoccerNet dataset):
+```
+python src/team_clustering/extract_frames.py
+```
+
+Create player crops from extracted frames:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/crop_players.py --yolo-detection --labels-dir None
+```
+
 ### 2D Pitch Radar
 
 (Still in progress)
