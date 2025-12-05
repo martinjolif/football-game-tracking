@@ -1,7 +1,4 @@
-# python
-# !/usr/bin/env python3
 """
-Fichier: scripts/crop_players.py
 Usage:
   python scripts/crop_players.py --images-dir train/images --labels-dir train/labels --out-dir crops
 Options:
