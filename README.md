@@ -79,7 +79,9 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
 
 #### Team clustering
+The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color.
 
+###### 1. Dataset creation
 Extract frames from videos (SoccerNet dataset):
 ```
 python src/team_clustering/extract_frames.py
@@ -87,8 +89,15 @@ python src/team_clustering/extract_frames.py
 
 Create player crops from extracted frames:
 ```
-PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/crop_players.py --yolo-detection --labels-dir None
+ PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/crop_players.py
 ```
+
+###### 2. Color jersey classification model training
+
+
+###### 3. Team clustering with embeddings evaluation
+
+
 
 ### 2D Pitch Radar
 
