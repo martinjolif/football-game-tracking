@@ -2,51 +2,27 @@ import sys
 from pathlib import Path
 import cv2
 
-from typing import Generator, Dict, List
+from utils import videos_by_match
+from training.logger import LOGGER
 
 SRC_DIR = Path("england_epl")
-OUT_DIR = Path("training/team_clustering/extracted_frames")
+OUT_DIR = Path("training/team_clustering/data/extracted_frames")
 SAMPLE_INTERVAL_SEC = 120.0  # sampling in seconds
-VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".mpg", ".mpeg", ".webm"}
-
-def iter_video_files(src_dir: Path = SRC_DIR, pattern: str = "*.mkv") -> Generator[Path, None, None]:
-    """
-    Recursively traverse `src_dir` and yield each file matching `pattern`.
-    """
-    src = Path(src_dir)
-    if not src.exists():
-        return
-    for p in src.rglob(pattern):
-        if p.is_file():
-            yield p
-
-def videos_by_match(src_dir: Path = SRC_DIR) -> Dict[str, List[Path]]:
-    """
-    Returns a dictionary {match_folder_name: [Path(...), ...]}.
-    """
-    result: Dict[str, List[Path]] = {}
-    for p in iter_video_files(src_dir):
-        match_name = p.parent.name
-        result.setdefault(match_name, []).append(p)
-    return result
 
 if not SRC_DIR.exists():
-    print(f"The folder `{SRC_DIR}` does not exist.")
+    LOGGER.error(f"The folder `{SRC_DIR}` does not exist.")
     sys.exit(1)
-
 
 save_all_global = False
 
 grouped = videos_by_match(SRC_DIR)
 for match, files in sorted(grouped.items()):
-    print(match)
-    for f in files:
-        video = f
-        print(f"  - {f}")
-        print(f"\n=== {video.name} ===")
+    LOGGER.info(match)
+    for video in files:
+        LOGGER.info(f"\n=== {video.name} ===")
         cap = cv2.VideoCapture(str(video))
         if not cap.isOpened():
-            print(f"Cannot open `{video}`. Skipped.")
+            LOGGER.error(f"Cannot open `{video}`. Skipped.")
             continue
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
@@ -97,12 +73,12 @@ for match, files in sorted(grouped.items()):
                     target = target_dir / fname
                     cv2.imwrite(str(target), frame)
                     saved_count += 1
-                    print(f"Saved -> `{target}`")
+                    LOGGER.info(f"Saved -> `{target}`")
 
             frame_idx += 1
 
         cap.release()
         cv2.destroyWindow(window)
-        print(f"Finished `{video.name}` — frames saved: {saved_count}")
+        LOGGER.info(f"Finished `{video.name}` — frames saved: {saved_count}")
 
-print("\nDone for all files.")
+LOGGER.info("\nDone for all files.")
