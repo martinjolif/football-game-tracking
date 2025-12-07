@@ -1,13 +1,19 @@
 import sys
 from pathlib import Path
 import cv2
+import argparse
 
 from utils import videos_by_match
 from training.logger import LOGGER
 
-SRC_DIR = Path("england_epl")
-OUT_DIR = Path("training/team_clustering/data/extracted_frames")
-SAMPLE_INTERVAL_SEC = 120.0  # sampling in seconds
+parser = argparse.ArgumentParser()
+parser.add_argument("--videos-dir", default="england_epl", help="folder with match videos")
+parser.add_argument("--out-dir", default="training/team_clustering/data/extracted_frames", help="folder to save extracted frames")
+parser.add_argument("--sample-interval", default=120.0, type=float, help="sampling interval in seconds")
+args = parser.parse_args()
+
+SRC_DIR = Path(args.videos_dir)
+OUT_DIR = Path(args.out_dir)
 
 if not SRC_DIR.exists():
     LOGGER.error(f"The folder `{SRC_DIR}` does not exist.")
@@ -26,7 +32,7 @@ for match, files in sorted(grouped.items()):
             continue
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        step = max(1, int(fps * SAMPLE_INTERVAL_SEC))
+        step = max(1, int(fps * args.sample_interval))
         frame_idx = 0
         saved_count = 0
         save_all_video = False
@@ -51,11 +57,11 @@ for match, files in sorted(grouped.items()):
                     if ans == "Q":
                         cap.release()
                         cv2.destroyAllWindows()
-                        print("Stop requested.")
+                        LOGGER.info("Stop requested.")
                         sys.exit(0)
-                    if ans == "q":
+                    elif ans == "q":
                         break
-                    if ans == "a":
+                    elif ans == "a":
                         save_all_video = True
                         save = True
                     elif ans == "A":

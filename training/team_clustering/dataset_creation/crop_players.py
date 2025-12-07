@@ -8,38 +8,45 @@ from src.app.api_to_supervision import detections_from_results
 from src.app.image_api import call_image_apis
 from src.app.utils import collect_class_ids
 from training.logger import LOGGER
-from training.team_clustering.dataset_creation.utils import (load_progress, _is_processed, find_label_path,
-                                                             yolo_to_bbox, save_progress, append_to_crops_index)
+from training.team_clustering.dataset_creation.utils import (load_progress, _is_processed, yolo_to_bbox,
+                                                             save_progress, append_to_crops_index)
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description="Extract player crops from images using existing labels or YOLO detection.")
 parser.add_argument(
     "--images-dir",
-    default="training/team_clustering/data/extracted_frames/2014-2015"
+    default="training/team_clustering/data/extracted_frames/2014-2015",
+    help="Directory containing the source images from which player crops will be extracted."
 )
 parser.add_argument(
     "--labels-dir",
     default=None,
-    help="Labels folder (optional). If missing, a sibling ‘labels’ directory is attempted"
+    help="Optional path to the labels folder. If not provided, a YOLO model will automatically detect and crop players from the images."
 )
-parser.add_argument("--out-dir", default="training/team_clustering/data/test-crops")
-parser.add_argument("--class-indices", default="2", help="comma-separated class indices to crop")
+parser.add_argument(
+    "--out-dir",
+    default="training/team_clustering/data/test-crops",
+    help="Directory where the extracted player crops and CSV index will be saved."
+)
+parser.add_argument(
+    "--class-indices",
+    default="2", #2 corresponds to player
+    help="Comma-separated list of class indices to crop (e.g., '0,1,2')."
+)
 parser.add_argument("--padding", type=float, default=0.0)
-parser.add_argument("--ext", default="jpg")
+parser.add_argument("--ext", default="jpg", help ="File extension for the saved crops (e.g., jpg, png).")
 parser.add_argument(
     "--ask-color",
     action="store_true",
-    help="show each crop and ask for color category to save in CSV"
+    help="If set, shows each crop and asks the user for a color category to save in the CSV."
 )
 parser.add_argument(
-    "--yolo-detection", action="store_true", help="use YOLO model to detect players if no label file"
+    "--yolo-detection",
+    action="store_true",
+    help="Use YOLO model to detect players if no label files are provided."
 )
 args = parser.parse_args()
 
 images_dir = args.images_dir
-labels_dir = args.labels_dir or os.path.join(os.path.dirname(images_dir), "labels")
-if labels_dir and not os.path.exists(labels_dir):
-    labels_dir = None
-
 os.makedirs(args.out_dir, exist_ok=True)
 progress_file = os.path.join(args.out_dir, "crop_progress.json")
 processed = load_progress(progress_file)
@@ -64,11 +71,11 @@ quit_requested = False
 try:
     for img_name in img_files:
         img_path = os.path.join(images_dir, img_name)
-        label_path = find_label_path(img_name, labels_dir)
         img = Image.open(img_path).convert("RGB")
         W, H = img.size
 
-        if label_path:
+        if args.labels_dir is not None:
+            label_path = args.labels_dir
             with open(label_path, "r", encoding="utf-8") as lf:
                 lines = [l.strip() for l in lf if l.strip()]
             detections = []

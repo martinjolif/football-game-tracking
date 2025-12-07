@@ -82,14 +82,14 @@ Look at the ``training/pitch_detection/config.py`` file to modify some training/
 The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color.
 
 ###### 1. Dataset creation
-Extract frames from videos (SoccerNet dataset):
+Extract frames from videos (SoccerNet dataset), you can call ``--help`` to see all the available options:
 ```
-python src/team_clustering/extract_frames.py
+PYTHONPATH=$PYTHONPATH:./training  python training/team_clustering/dataset_creation/extract_frames.py 
 ```
 
-Create player crops from extracted frames:
+Create player crops from extracted frames, you can call ``--help`` to see all the available options:
 ```
- PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/crop_players.py
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/dataset_creation/crop_players.py --ask-color --yolo-detection
 ```
 
 ###### 2. Color jersey classification model training
