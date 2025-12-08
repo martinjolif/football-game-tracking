@@ -13,20 +13,37 @@ from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 from training.logger import LOGGER
 
 class JerseyDataset(Dataset):
+    """
+    PyTorch Dataset for player jersey images and color labels.
+    """
     def __init__(self, items, label2idx, transform=None):
         """
-        items: list of (image_path, label_str)
-        label2idx: mapping label string -> int
-        transform: torchvision transforms
+        Parameters
+        ----------
+        items : list of (image_path, label)
+            List of image file paths and corresponding label strings.
+        label2idx : dict
+            Mapping from label strings to integer class indices.
+        transform : callable, optional
+            Optional torchvision transforms applied to each image.
         """
         self.items = items
         self.label2idx = label2idx
         self.transform = transform
 
     def __len__(self):
+        """Return number of items in the dataset."""
         return len(self.items)
 
     def __getitem__(self, idx):
+        """
+        Load an image and its label at the given index.
+
+        Returns
+        -------
+        tuple[torch.Tensor, int]
+            Transformed image tensor and integer class label.
+        """
         path, label = self.items[idx]
         with Image.open(path) as im:
             img = im.convert("RGB")
@@ -37,35 +54,26 @@ class JerseyDataset(Dataset):
 
 def find_image(data_dir: Path, crop_name: str) -> Path | None:
     """
-    Try direct join, else search recursively by basename.
-    Returns Path or None.
+    Locate an image file by name under a directory.
+
+    Parameters
+    ----------
+    data_dir : Path
+        Root directory to search.
+    crop_name : str
+        Image filename or relative path.
+
+    Returns
+    -------
+    Path or None
+        Found image path, or None if not found.
     """
-    cand = data_dir / crop_name
-    if cand.exists():
-        return cand
+    candidate = data_dir / crop_name
+    if candidate.exists():
+        return candidate
     # fallback: search for basename
     basename = Path(crop_name).name
     for p in data_dir.rglob(basename):
-        return p
-    return None
-
-def resolve_csv(csv_path: Path, data_dir: Path) -> Path | None:
-    """
-    Return a Path to the CSV if found, else None.
-    Search order:
-    1. Provided csv_path
-    2. data_dir / csv_filename
-    3. recursive search under data_dir
-    4. recursive search under current working directory
-    """
-    if csv_path.exists():
-        return csv_path
-    alt = data_dir / csv_path.name
-    if alt.exists():
-        return alt
-    for p in data_dir.rglob(csv_path.name):
-        return p
-    for p in Path.cwd().rglob(csv_path.name):
         return p
     return None
 
@@ -75,9 +83,28 @@ def build_items_from_csv(
         crop_col: str = "crop_image",
         label_col: str = "color"
 ) -> list[tuple[str, str]]:
+    """
+    Build a list of (image_path, label) tuples from a CSV file.
+
+    Parameters
+    ----------
+    csv_path : Path
+        Path to the CSV file.
+    data_dir : Path
+        Root directory containing crop images.
+    crop_col : str
+        Column name for image filenames.
+    label_col : str
+        Column name for class labels.
+
+    Returns
+    -------
+    list of (str, str)
+        List of tuples with image paths and labels.
+    """
     df = pd.read_csv(csv_path)
     if crop_col not in df.columns or label_col not in df.columns:
-         raise ValueError(f"CSV must contain columns `{crop_col}` and `{label_col}`")
+        raise ValueError(f"CSV must contain columns `{crop_col}` and `{label_col}`")
     # filter out empty labels
     df = df[df[label_col].notna()]
     df[label_col] = df[label_col].astype(str).str.strip()
@@ -96,58 +123,62 @@ def build_items_from_csv(
         LOGGER.warning(f"Warning: {missing_count} crop images listed in CSV were not found under {data_dir}")
     return items
 
-def load_model(model_path: Path, mapping_path: Path, device: torch.device) -> tuple[nn.Module, dict | None]:
-    # load label2idx
-    if mapping_path.exists():
-        with open(mapping_path, "r", encoding="utf-8") as f:
-            label2idx = json.load(f)
-    else:
-        label2idx = None
+def load_model(model_path: Path, device: torch.device) -> tuple[nn.Module, dict | None]:
+    """
+    Load a MobileNetV3 model and label mapping from disk.
 
+    Parameters
+    ----------
+    model_path : Path
+        Path to the saved model file.
+    device : torch.device
+        Device to move the model to.
+
+    Returns
+    -------
+    model : nn.Module
+        Loaded MobileNetV3 model set to eval mode.
+    label2idx : dict or None
+        Mapping of label strings to class indices, or None if unavailable.
+    """
     # build model skeleton and adjust final layer
-    weights = MobileNet_V3_Small_Weights.DEFAULT
-    model = mobilenet_v3_small(weights=weights)
+    model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
     # determine num classes from saved model or mapping
     state = torch.load(model_path, map_location="cpu")
-    if isinstance(state, dict) and "model_state_dict" in state:
-        sd = state["model_state_dict"]
-    else:
-        sd = state
-    # infer num_classes from state dict final linear weight shape if possible
-    final_w_keys = [k for k in sd.keys() if "classifier" in k and "weight" in k]
-    num_classes = None
-    if final_w_keys:
-        # take last classifier.weight
-        key = sorted(final_w_keys)[-1]
-        num_classes = sd[key].shape[0]
-    if label2idx is not None:
-        num_classes = len(label2idx)
-    if num_classes is None:
-        raise RuntimeError("Unable to determine number of classes from mapping or model")
+    sd = state.get("model_state_dict", state)
+
+    # load label2idx
+    label2idx = state.get("label2idx")
+    num_classes = len(label2idx)
 
     # replace final classifier linear
-    last_lin_idx = None
-    for i, m in enumerate(model.classifier):
-        if isinstance(m, nn.Linear):
-            last_lin_idx = i
-    if last_lin_idx is None:
-        raise RuntimeError("Unable to find final linear in MobileNetV3 classifier")
-    in_features = model.classifier[last_lin_idx].in_features
-    model.classifier[last_lin_idx] = nn.Linear(in_features, num_classes)
+    in_features = model.classifier[-1].in_features
+    model.classifier[-1] = nn.Linear(in_features, num_classes)
 
-    model.load_state_dict(sd if "model_state_dict" not in state else state["model_state_dict"])
+    model.load_state_dict(sd)
     model.to(device)
     model.eval()
 
-    if label2idx is None and "label2idx" in state:
-        label2idx = state["label2idx"]
-    if isinstance(label2idx, dict):
-        # ensure keys are strings and values ints
-        label2idx = {str(k): int(v) for k, v in label2idx.items()}
     return model, label2idx
 
 def extract_embeddings(model: nn.Module, imgs: torch.Tensor) -> np.ndarray:
+    """
+    Compute feature embeddings for a batch of images.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Feature extractor model.
+    imgs : torch.Tensor
+        Batch of images on the appropriate device.
+
+    Returns
+    -------
+    np.ndarray
+        Array of embeddings with shape (batch_size, embedding_dim).
+    """
     # imgs: tensor on device
+    model.eval()
     with torch.no_grad():
         x = model.features(imgs)
         # model.avgpool usually exists
@@ -171,15 +202,39 @@ def plot_umap(
         out_path: Path,
         title: str = "UMAP ground truth"
 ) -> None:
+    """
+    Project embeddings to 2D using UMAP and plot them.
+
+    Parameters
+    ----------
+    embeddings : np.ndarray
+        Feature embeddings of shape (N, D).
+    labels : list
+        Integer labels corresponding to embeddings.
+    label_names : dict
+        Mapping from label integers to display names.
+    out_path : Path
+        Path to save the resulting plot image.
+    title : str
+        Plot title.
+    """
     reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
-    X2 = reducer.fit_transform(embeddings)
+    umap_projection = reducer.fit_transform(embeddings)
 
     plt.figure(figsize=(10, 8))
+    labels_arr = np.array(labels)
     uniques = sorted(set(labels))
     cmap = plt.get_cmap("tab20")
     for i, u in enumerate(uniques):
-        idxs = [j for j, lab in enumerate(labels) if lab == u]
-        plt.scatter(X2[idxs, 0], X2[idxs, 1], label=label_names[u], s=10, color=cmap(i % 20), alpha=0.8)
+        mask = labels_arr == u
+        plt.scatter(
+            umap_projection[mask, 0],
+            umap_projection[mask, 1],
+            label=label_names[u],
+            s=10,
+            color=cmap(i % 20),
+            alpha=0.8
+        )
     plt.legend(markerscale=2, bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.title(title)
     plt.tight_layout()

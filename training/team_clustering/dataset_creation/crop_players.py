@@ -24,7 +24,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--out-dir",
-    default="training/team_clustering/data/test-crops",
+    default="training/team_clustering/data/crops",
     help="Directory where the extracted player crops and CSV index will be saved."
 )
 parser.add_argument(

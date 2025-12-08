@@ -84,7 +84,7 @@ The goal is first to create a dataset of player crops labeled by their color jer
 ###### 1. Dataset creation
 Extract frames from videos (SoccerNet dataset), you can call ``--help`` to see all the available options:
 ```
-PYTHONPATH=$PYTHONPATH:./training  python training/team_clustering/dataset_creation/extract_frames.py 
+PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/dataset_creation/extract_frames.py 
 ```
 
 Create player crops from extracted frames, you can call ``--help`` to see all the available options:
@@ -92,10 +92,13 @@ Create player crops from extracted frames, you can call ``--help`` to see all th
 PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/dataset_creation/crop_players.py --ask-color --yolo-detection
 ```
 
-###### 2. Color jersey classification model training
+###### 2. Color jersey classification model training & team clustering with embeddings evaluation
 
+Training the classification model, you can call ``--help`` to see all the available options:
+```
+PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/train.py
+```
 
-###### 3. Team clustering with embeddings evaluation
 
 
 
