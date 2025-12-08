@@ -14,7 +14,7 @@ from training.team_clustering.dataset_creation.utils import (load_progress, _is_
 parser = argparse.ArgumentParser(description="Extract player crops from images using existing labels or YOLO detection.")
 parser.add_argument(
     "--images-dir",
-    default="training/team_clustering/data/extracted_frames/2014-2015",
+    default="training/team_clustering/data/extracted_frames",
     help="Directory containing the source images from which player crops will be extracted."
 )
 parser.add_argument(
