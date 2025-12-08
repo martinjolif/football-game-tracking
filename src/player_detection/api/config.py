@@ -9,3 +9,6 @@ elif torch.backends.mps.is_available():
     DEVICE = "mps"
 else:
     DEVICE = "cpu"
+
+CONFIDENCE_THRESHOLD = 0.5 #default parameter from YOLO 0.25
+IOU_THRESHOLD = 0.7 #default parameter from YOLO 0.7
