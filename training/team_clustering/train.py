@@ -13,8 +13,8 @@ from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 from tqdm import tqdm
 
 from training.logger import LOGGER
-from training.team_clustering.utils import build_items_from_csv, JerseyDataset
-from training.team_clustering.evaluation import evaluate_model
+from training.team_clustering.utils import build_items_from_csv
+from training.team_clustering.evaluation import evaluate_model, JerseyDataset
 
 def train_one_epoch(
         model: nn.Module,
@@ -180,6 +180,7 @@ with mlflow.start_run():
         "labels": labels,
         "model": "mobilenet_v3_small",
         "data_dir": str(args.train_data_dir),
+        "model_out_dir": str(best_path)
     })
 
     # Save mapping

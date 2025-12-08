@@ -8,8 +8,8 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from training.logger import LOGGER
-from training.team_clustering.utils import (JerseyDataset, build_items_from_csv, load_model,
-                                            extract_embeddings, plot_umap)
+from training.team_clustering.utils import JerseyDataset, build_items_from_csv, plot_umap
+from src.team_clustering.utils import load_model, extract_embeddings
 
 COLOR_LABELS = ["blue", "red", "black", "white", "yellow", "green", "orange", "purple", "pink", "gray"]
 

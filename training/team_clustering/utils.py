@@ -1,15 +1,12 @@
-import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
 import umap
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
+
 from training.logger import LOGGER
 
 class JerseyDataset(Dataset):
@@ -102,7 +99,7 @@ def build_items_from_csv(
     list of (str, str)
         List of tuples with image paths and labels.
     """
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, usecols=[crop_col, label_col])
     if crop_col not in df.columns or label_col not in df.columns:
         raise ValueError(f"CSV must contain columns `{crop_col}` and `{label_col}`")
     # filter out empty labels
@@ -122,78 +119,6 @@ def build_items_from_csv(
     if missing_count:
         LOGGER.warning(f"Warning: {missing_count} crop images listed in CSV were not found under {data_dir}")
     return items
-
-def load_model(model_path: Path, device: torch.device) -> tuple[nn.Module, dict | None]:
-    """
-    Load a MobileNetV3 model and label mapping from disk.
-
-    Parameters
-    ----------
-    model_path : Path
-        Path to the saved model file.
-    device : torch.device
-        Device to move the model to.
-
-    Returns
-    -------
-    model : nn.Module
-        Loaded MobileNetV3 model set to eval mode.
-    label2idx : dict or None
-        Mapping of label strings to class indices, or None if unavailable.
-    """
-    # build model skeleton and adjust final layer
-    model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
-    # determine num classes from saved model or mapping
-    state = torch.load(model_path, map_location="cpu")
-    sd = state.get("model_state_dict", state)
-
-    # load label2idx
-    label2idx = state.get("label2idx")
-    num_classes = len(label2idx)
-
-    # replace final classifier linear
-    in_features = model.classifier[-1].in_features
-    model.classifier[-1] = nn.Linear(in_features, num_classes)
-
-    model.load_state_dict(sd)
-    model.to(device)
-    model.eval()
-
-    return model, label2idx
-
-def extract_embeddings(model: nn.Module, imgs: torch.Tensor) -> np.ndarray:
-    """
-    Compute feature embeddings for a batch of images.
-
-    Parameters
-    ----------
-    model : nn.Module
-        Feature extractor model.
-    imgs : torch.Tensor
-        Batch of images on the appropriate device.
-
-    Returns
-    -------
-    np.ndarray
-        Array of embeddings with shape (batch_size, embedding_dim).
-    """
-    # imgs: tensor on device
-    model.eval()
-    with torch.no_grad():
-        x = model.features(imgs)
-        # model.avgpool usually exists
-        if hasattr(model, "avgpool"):
-            x = model.avgpool(x)
-        else:
-            # fallback adaptive pool to (1,1)
-            x = torch.nn.functional.adaptive_avg_pool2d(x, (1, 1))
-        x = torch.flatten(x, 1)
-        # apply classifier except last linear to get embedding
-        if isinstance(model.classifier, torch.nn.Sequential) and len(model.classifier) > 1:
-            feat = model.classifier[:-1](x)
-        else:
-            feat = x
-    return feat.cpu().numpy()
 
 def plot_umap(
         embeddings: np.ndarray,
