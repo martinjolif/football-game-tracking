@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 def detections_from_results(
         results: dict,
         detected_class_ids: list[int],
-        confidence_threshold: float = 0
 ) -> sv.Detections:
     """
     Converts API results into a Supervision Detections object.
@@ -16,20 +15,13 @@ def detections_from_results(
     Parameters:
         results (dict): Dictionary returned by call_image_apis().
         detected_class_ids (list): List of class ids to select, otherwise it will be ignored.
-        confidence_threshold (float): Minimum confidence to keep a detection.
 
     Returns:
         sv.Detections: Detections object with xyxy, confidence, and class_id.
     """
-    # Filter detections by confidence
-    filtered_detections = [
-        d for d in results
-        if d.get("confidence", 0) > confidence_threshold and d.get("detected_class_id", 0) in detected_class_ids
-    ]
-
     valid_detections = [
-        d for d in filtered_detections
-        if all(k in d.get('bbox', {}) for k in ('x0', 'y0', 'x1', 'y1'))
+        d for d in results
+        if all(k in d.get('bbox', {}) for k in ('x0', 'y0', 'x1', 'y1')) and d.get("detected_class_id", 0) in detected_class_ids
     ]
 
     if not valid_detections:
