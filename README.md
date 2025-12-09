@@ -175,6 +175,13 @@ curl -X POST "http://localhost:8000/player-detection/image" \
 
 ## Data 
 If you want to test the full pipeline with a real football game video as input, you can download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
+```
+import SoccerNet
+from SoccerNet.Downloader import SoccerNetDownloader
+mySoccerNetDownloader=SoccerNetDownloader(LocalDirectory="")
+mySoccerNetDownloader.password = "Password for videos (received after filling the NDA)"
+mySoccerNetDownloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"], split=["train","valid","test","challenge"])
+```
 
 ## Run the Application via Docker
 
