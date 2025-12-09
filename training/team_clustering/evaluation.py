@@ -81,10 +81,10 @@ def evaluate_model(
         "target_idx": all_targets, "pred_idx": all_preds,
         "target_label": [idx2label[i] for i in all_targets],
         "pred_label": [idx2label[i] for i in all_preds],
-    }).to_csv(out_dir / "eval_results.csv", index=False)
+    }).to_csv(out_dir / "test_set_results.csv", index=False)
 
-    plot_path = out_dir / "umap_ground_truth.png"
-    plot_umap(all_embeddings, all_targets, idx2label, plot_path, title=f"UMAP ground truth")
+    plot_path = out_dir / "umap_test_set.png"
+    plot_umap(all_embeddings, all_targets, idx2label, plot_path, title=f"UMAP on the test set")
 
     LOGGER.info(f"Done. Results saved to `{out_dir}`")
     LOGGER.info(f"UMAP plot: `{plot_path}`")
