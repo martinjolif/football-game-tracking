@@ -7,7 +7,6 @@ import umap
 from PIL import Image
 from sklearn.cluster import KMeans
 from torchvision import transforms
-import cv2
 
 from src.app.api_to_supervision import detections_from_results
 from src.app.image_api import call_image_apis

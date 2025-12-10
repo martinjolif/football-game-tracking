@@ -129,7 +129,7 @@ def live_preview_cluster_video(
 
 video_path = "../../england_epl/2014-2015/2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/1_720p.mkv"
 model_path = "../../runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth"
-device = torch.device("mps")
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 live_preview_cluster_video(
     video_path,
