@@ -18,3 +18,15 @@ class ClusteringModel:
         clusters = self.clustering_model.fit_predict(reduced_features)
 
         return clusters
+
+    def predict(self, images):
+        # Extract features
+        features = extract_embeddings(self.feature_extraction_model, images)
+
+        # Reduce dimensions
+        reduced_features = self.dimension_reducer.transform(features)
+
+        # Predict clusters
+        clusters = self.clustering_model.predict(reduced_features)
+
+        return clusters
