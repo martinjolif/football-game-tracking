@@ -119,7 +119,7 @@ def visualize_clusters(
 
 
 img_path = "training/team_clustering/data/extracted_frames/2014-2015/2015-02-21 - 18-00 Crystal Palace 1 - 2 Arsenal/1_720p/frame_015000.jpg"
-model_path = "runs/mlflow/750198089413804961/1b0fac0c87e542448cd3a35a12525ce2/artifacts/best_mobilenetv3_small.pth"
+model_path = "runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
