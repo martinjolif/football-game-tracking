@@ -2,7 +2,6 @@ import io
 import time
 
 from PIL import Image, UnidentifiedImageError
-from sklearn.base import is_outlier_detector
 from ultralytics import YOLO
 
 from src.pitch_detection.api.config import INFERENCE_MODEL_PATH, DEVICE, IOU_THRESHOLD, CONFIDENCE_THRESHOLD
