@@ -14,11 +14,11 @@ from src.app.utils import collect_class_ids
 
 PROCESSED_FRAME_INTERVAL = 50
 PLAYER_TRACKING_VIZ = False
-PITCH_RADAR_VIZ = True
+PITCH_RADAR_VIZ = False
 DEBUG_ALL = False
 DEBUG_PLAYER_DETECTION = False
 DEBUG_BALL_DETECTION = False
-DEBUG_PITCH_DETECTION = False
+DEBUG_PITCH_DETECTION = True
 
 logger = logging.getLogger(__name__)
 
@@ -150,10 +150,10 @@ try:
             )
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
 
-        cv2.imshow("Simulated Live Stream", annotated_frame)
+        #cv2.imshow("Simulated Live Stream", annotated_frame)
 
-        #if frame_count % PROCESSED_FRAME_INTERVAL == 0:
-        #    cv2.imshow("Processed", frame)
+        if frame_count % PROCESSED_FRAME_INTERVAL == 0:
+            cv2.imshow("Processed", annotated_frame)
 
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
             break
