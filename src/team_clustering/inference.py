@@ -27,8 +27,8 @@ def classify_player_from_image(crop_images, model_path: str, img_size: int, batc
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
 
     all_embeddings = []
-    for imgs, targets in tqdm(test_loader, desc="Eval"):
-        imgs, targets = imgs.to(device), targets.to(device)
+    for imgs in tqdm(test_loader, desc="Eval"):
+        imgs = imgs.to(device)
         with torch.no_grad():
             emb = extract_embeddings(model, imgs)
         all_embeddings.append(emb)
