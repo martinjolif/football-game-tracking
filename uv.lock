@@ -632,6 +632,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "huggingface-hub" },
     { name = "mlflow" },
     { name = "pytest" },
     { name = "seaborn" },
@@ -654,6 +655,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "huggingface-hub", specifier = ">=0.36.0" },
     { name = "mlflow", specifier = ">=3.6.0" },
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
