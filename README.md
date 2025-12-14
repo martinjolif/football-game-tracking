@@ -23,6 +23,7 @@ Create the `uv` environment using the following command:
 ```
 uv venv
 uv sync
+source .venv/bin/activate
 ```
 
 ### Access MLflow to track experiments
