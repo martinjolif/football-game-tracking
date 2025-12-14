@@ -39,6 +39,11 @@ then open http://127.0.0.1:5001/. You will see here the model you trained with t
 
 #### Football player detection
 
+Download training/validation/test data:
+```
+hf download martinjolif/football-player-detection --repo-type dataset --local-dir training/player_detection/
+```
+
 From the ``football-game-tracking`` folder, run the following command:
 ```
 PYTHONPATH=$PYTHONPATH:./src python training/player_detection/train.py
@@ -53,6 +58,11 @@ Look at the ``training/player_detection/config.py`` file to modify some training
 
 #### Football ball detection
 
+Download training/validation/test data:
+```
+hf download martinjolif/football-ball-detection --repo-type dataset --local-dir training/ball_detection/
+```
+
 From the ``football-game-tracking`` folder, run the following command:
 
 ```
@@ -66,6 +76,11 @@ Look at the ``training/ball_detection/config.py`` file to modify some training/e
 
 
 #### Football pitch detection
+
+Download training/validation/test data:
+```
+hf download martinjolif/football-pitch-detection --repo-type dataset --local-dir training/pitch_detection/
+```
 
 From the ``football-game-tracking`` folder, run the following command to train the model:
 
@@ -99,6 +114,13 @@ Training the classification model, you can call ``--help`` to see all the availa
 PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/train.py
 ```
 
+### Load models checkpoints
+
+Download model checkpoints from Hugging Face:
+```
+hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
+hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
+```
 
 
 
