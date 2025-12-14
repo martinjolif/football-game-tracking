@@ -8,7 +8,7 @@ elif torch.backends.mps.is_available():
 else:
     DEVICE = "cpu"
 MODEL_NAME = "yolov8n" # Pretrained YOLO model name
-DATA_ROOT = "training/ball_detection/data/yolov8-format" # Root directory for dataset
+DATA_ROOT = "training/ball_detection/data" # Root directory for dataset
 MODEL_DIR = "training/ball_detection/models" # Directory to save trained models
 
 # Training configuration parameters for YOLO object tracking model

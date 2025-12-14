@@ -14,11 +14,11 @@ from src.app.utils import collect_class_ids
 
 PROCESSED_FRAME_INTERVAL = 50
 PLAYER_TRACKING_VIZ = False
-PITCH_RADAR_VIZ = False
+PITCH_RADAR_VIZ = True
 DEBUG_ALL = False
 DEBUG_PLAYER_DETECTION = False
 DEBUG_BALL_DETECTION = False
-DEBUG_PITCH_DETECTION = True
+DEBUG_PITCH_DETECTION = False
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ try:
     seconds_per_frame = 1 / fps
     frame_count = 0
 
-    while True:
+    while frame_count < 1:
         ret, frame = video_capture.read()
         if not ret:
             print("✅ End of video stream.")
@@ -83,7 +83,6 @@ try:
             ],
             image_bytes=frame_bytes)
 
-        keypoint_mask = None
         if not (DEBUG_ALL or DEBUG_PLAYER_DETECTION or PLAYER_TRACKING_VIZ or PITCH_RADAR_VIZ):
             player_detection = None
         else:
@@ -111,21 +110,14 @@ try:
         if not (DEBUG_ALL or DEBUG_PITCH_DETECTION or PITCH_RADAR_VIZ):
             pitch_detection = None
         else:
-            pitch_detection, keypoint_mask = keypoints_from_pose_results(
+            pitch_detection, filter = keypoints_from_pose_results(
                 results["http://localhost:8002/pitch-detection/image"],
                 confidence_threshold=0.5
             )
-            # There is one object in the image: football pitch
-            keypoint_mask = keypoint_mask[0]
 
         if DEBUG_ALL or DEBUG_PLAYER_DETECTION or DEBUG_BALL_DETECTION or DEBUG_PITCH_DETECTION:
-            annotated_frame = render_detection_results(
-                frame,
-                player_detection,
-                ball_detection,
-                pitch_detection,
-                keypoint_mask=keypoint_mask
-            )
+            h, w, _ = frame.shape
+            annotated_frame = render_detection_results(frame, player_detection, ball_detection, pitch_detection, filter)
 
         elif PLAYER_TRACKING_VIZ:
             tracker.update_with_detections(player_detection)
@@ -139,7 +131,7 @@ try:
         elif PITCH_RADAR_VIZ:
             h, w, _ = frame.shape
             annotated_frame = frame.copy()
-            radar = render_pitch_radar(player_detection, ball_detection, pitch_detection, keypoint_mask)
+            radar = render_pitch_radar(player_detection, ball_detection, pitch_detection, filter)
             radar = sv.resize_image(radar, (w//2, h//2))
             radar_h, radar_w, _ = radar.shape
             rect = sv.Rect(
@@ -150,10 +142,10 @@ try:
             )
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
 
-        #cv2.imshow("Simulated Live Stream", annotated_frame)
+        cv2.imshow("Simulated Live Stream", annotated_frame)
 
-        if frame_count % PROCESSED_FRAME_INTERVAL == 0:
-            cv2.imshow("Processed", annotated_frame)
+        #if frame_count % PROCESSED_FRAME_INTERVAL == 0:
+        #    cv2.imshow("Processed", frame)
 
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
             break
@@ -167,4 +159,18 @@ except Exception as e:
 finally:
     if video_capture is not None:
         video_capture.release()
+    # Ne pas appeler cv2.destroyAllWindows() ici pour garder la fenêtre ouverte.
+
+    # Garder la fenêtre ouverte jusqu'à ce que l'utilisateur appuie sur 'q' ou ferme la fenêtre
+try:
+    print("La fenêtre reste ouverte. Appuyez sur 'q' pour fermer.")
+    while True:
+        # Si la fenêtre a été fermée manuellement, sortir
+        if cv2.getWindowProperty("Simulated Live Stream", cv2.WND_PROP_VISIBLE) < 1:
+            break
+        if cv2.waitKey(100) & 0xFF == ord('q'):
+            break
+except Exception:
+    pass
+finally:
     cv2.destroyAllWindows()

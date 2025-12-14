@@ -23,9 +23,10 @@ Create the `uv` environment using the following command:
 ```
 uv venv
 uv sync
+source .venv/bin/activate
 ```
 
-### Acces MLflow to track experiments
+### Access MLflow to track experiments
 To get access to mlflow project, run the following command:
 ```
 mlflow server \
@@ -38,6 +39,11 @@ then open http://127.0.0.1:5001/. You will see here the model you trained with t
 ### Train & Evaluate ML models
 
 #### Football player detection
+
+Download training/validation/test data:
+```
+hf download martinjolif/football-player-detection --repo-type dataset --local-dir training/player_detection/
+```
 
 From the ``football-game-tracking`` folder, run the following command:
 ```
@@ -53,6 +59,11 @@ Look at the ``training/player_detection/config.py`` file to modify some training
 
 #### Football ball detection
 
+Download training/validation/test data:
+```
+hf download martinjolif/football-ball-detection --repo-type dataset --local-dir training/ball_detection/
+```
+
 From the ``football-game-tracking`` folder, run the following command:
 
 ```
@@ -67,6 +78,11 @@ Look at the ``training/ball_detection/config.py`` file to modify some training/e
 
 #### Football pitch detection
 
+Download training/validation/test data:
+```
+hf download martinjolif/football-pitch-detection --repo-type dataset --local-dir training/pitch_detection/
+```
+
 From the ``football-game-tracking`` folder, run the following command to train the model:
 
 ```
@@ -77,6 +93,37 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/train.py
 PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 ```
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
+
+#### Team clustering
+The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color.
+
+###### 1. Dataset creation
+Extract frames from videos (SoccerNet dataset), you can call ``--help`` to see all the available options:
+```
+PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/dataset_creation/extract_frames.py 
+```
+
+Create player crops from extracted frames, you can call ``--help`` to see all the available options:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/dataset_creation/crop_players.py --ask-color --yolo-detection
+```
+
+###### 2. Color jersey classification model training & team clustering with embeddings evaluation
+
+Training the classification model, you can call ``--help`` to see all the available options:
+```
+PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/train.py
+```
+
+### Load models checkpoints
+
+Download model checkpoints from Hugging Face:
+```
+hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
+hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
+```
+
+
 
 ### 2D Pitch Radar
 
@@ -122,9 +169,9 @@ Make sure to update the ``src/player_detection/api/config.py`` file with the cor
 
 Call examples
 ```
-curl -X POST "http://localhost:8000/player-detection/image" -F "file=@training/player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
-curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@training/ball_detection/data/yolov8-format/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
-curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pitch_detection/data/yolov8-format/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
+curl -X POST "http://localhost:8000/player-detection/image" -F "file=@training/player_detection/data/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
+curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@training/ball_detection/data/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
+curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pitch_detection/data/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
 ```
 
 ### Build and Run Docker Image
@@ -151,6 +198,13 @@ curl -X POST "http://localhost:8000/player-detection/image" \
 
 ## Data 
 If you want to test the full pipeline with a real football game video as input, you can download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
+```
+import SoccerNet
+from SoccerNet.Downloader import SoccerNetDownloader
+mySoccerNetDownloader=SoccerNetDownloader(LocalDirectory="")
+mySoccerNetDownloader.password = "Password for videos (received after filling the NDA)"
+mySoccerNetDownloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"], split=["train","valid","test","challenge"])
+```
 
 ## Run the Application via Docker
 
@@ -166,6 +220,6 @@ docker run -p 8000:8000 mjolif/football-game-tracking
 ```
 Call the API:
 ```
-curl -X POST "http://<ip-adress>:8000/player-detection/image" \
+curl -X POST "http://<ip-address>:8000/player-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
 ```

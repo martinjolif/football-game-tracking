@@ -9,3 +9,5 @@ elif torch.backends.mps.is_available():
     DEVICE = "mps"
 else:
     DEVICE = "cpu"
+IOU_THRESHOLD = 0.7
+CONFIDENCE_THRESHOLD = 0.25

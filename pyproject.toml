@@ -12,12 +12,18 @@ dependencies = [
     "supervision==0.27.0rc4",
     "ultralytics>=8.3.221",
     "uvicorn>=0.38.0",
+    "umap-learn>=0.5.9.post2",
+    "transformers>=4.57.3",
+    "opencv-python>=4.11.0.86",
 ]
 
 [dependency-groups]
 dev = [
+    "huggingface-hub>=0.36.0",
     "mlflow>=3.6.0",
     "pytest>=9.0.0",
+    "seaborn>=0.13.2",
+    "soccernet>=0.1.62",
 ]
 
 [tool.pytest.ini_options]
