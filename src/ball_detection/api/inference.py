@@ -19,7 +19,7 @@ def detect_ball_in_image(image_bytes: bytes) -> DetectionInferenceResponse:
         raise ValueError("The input data is not a valid image") from e
 
     start_time = time.perf_counter()
-    results = model(image_pil, device=DEVICE, iou=IOU_THRESHOLD, confidence=CONFIDENCE_THRESHOLD)
+    results = model(image_pil, device=DEVICE, iou=IOU_THRESHOLD, conf=CONFIDENCE_THRESHOLD)
     end_time = time.perf_counter()
     inference_time = end_time - start_time
     detections = []
