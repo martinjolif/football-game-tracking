@@ -168,9 +168,9 @@ Make sure to update the ``src/player_detection/api/config.py`` file with the cor
 
 Call examples
 ```
-curl -X POST "http://localhost:8000/player-detection/image" -F "file=@training/player_detection/data/yolov8-format/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
-curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@training/ball_detection/data/yolov8-format/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
-curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pitch_detection/data/yolov8-format/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
+curl -X POST "http://localhost:8000/player-detection/image" -F "file=@training/player_detection/data/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
+curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@training/ball_detection/data/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
+curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pitch_detection/data/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
 ```
 
 ### Build and Run Docker Image

@@ -9,7 +9,7 @@ elif torch.backends.mps.is_available():
 else:
     DEVICE = "cpu"
 MODEL_NAME = "yolo11m" # Pretrained YOLO model name
-DATA_ROOT = "training/player_detection/data/yolov8-format" # Root directory for dataset
+DATA_ROOT = "training/player_detection/data" # Root directory for dataset
 MODEL_DIR = "training/player_detection/models" # Directory to save trained models
 
 # Training configuration parameters for YOLO object tracking model
@@ -18,5 +18,5 @@ EPOCHS = 50
 
 # Evaluation configuration
 EVAL_BATCH_SIZE = 16
-MODEL_EVAL_PATH = "football-player-detection-yolov8n/weights/best.pt" # Path to the trained model for evaluation
+MODEL_EVAL_PATH = "football-player-detection-yolo11m/weights/best.pt" # Path to the trained model for evaluation
 PLOTS = True # Whether to generate plots during evaluation
