@@ -8,18 +8,20 @@ from radar.homography import Homography
 from radar.pitch_dimensions import PitchDimensions
 
 def render_pitch_radar(
-    player_detection_output: sv.Detections,
-    ball_detection_output: sv.Detections,
     pitch_detection_output: sv.KeyPoints,
     keypoint_mask: np.ndarray,
+    player_detection_output: Optional[sv.Detections] = None,
+    ball_detection_output: Optional[sv.Detections] = None,
+    player_teams: Optional[np.ndarray] = None
 ) -> np.ndarray:
     """
         Generates a soccer pitch visualization with player and ball positions overlaid.
         Args:
-            player_detection_output (sv.Detections): Player detection results containing anchor coordinates.
-            ball_detection_output (sv.Detections): Ball detection results containing anchor coordinates.
             pitch_detection_output (sv.KeyPoints): Keypoint detections for the pitch corners and features.
             keypoint_mask (np.ndarray): Boolean mask selecting valid pitch keypoints.
+            player_detection_output (sv.Detections): Player detection results containing anchor coordinates.
+            ball_detection_output (sv.Detections): Ball detection results containing anchor coordinates.
+            player_teams (np.ndarray): Array of integers specifying the team for each player.
 
         Returns:
             np.ndarray: Annotated image of the soccer pitch with player and ball positions.
@@ -29,29 +31,52 @@ def render_pitch_radar(
     pitch_points = np.array(pitch_dimensions.get_vertices())[keypoint_mask].astype(np.float32)
     homography = Homography(source=frame_points, target=pitch_points)
 
-    frame_ball_xy = ball_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-    pitch_ball_xy = homography.transform_points(frame_ball_xy)
-
-    frame_players_xy = player_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-    pitch_players_xy = homography.transform_points(frame_players_xy)
-
     annotated_frame = draw_pitch(pitch_dimensions)
-    annotated_frame = draw_points_on_pitch(
-        config=pitch_dimensions,
-        xy=pitch_ball_xy,
-        face_color=sv.Color.WHITE,
-        edge_color=sv.Color.BLACK,
-        radius=10,
-        pitch=annotated_frame
-    )
-    annotated_frame = draw_points_on_pitch(
-        config=pitch_dimensions,
-        xy=pitch_players_xy,
-        face_color=sv.Color.BLUE,
-        edge_color=sv.Color.BLACK,
-        radius=16,
-        pitch=annotated_frame
-    )
+
+    if ball_detection_output is not None :
+        frame_ball_xy = ball_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+        pitch_ball_xy = homography.transform_points(frame_ball_xy)
+        annotated_frame = draw_points_on_pitch(
+            config=pitch_dimensions,
+            xy=pitch_ball_xy,
+            face_color=sv.Color.WHITE,
+            edge_color=sv.Color.BLACK,
+            radius=10,
+            pitch=annotated_frame
+        )
+
+    if player_detection_output is not None :
+        frame_players_xy = player_detection_output.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+        pitch_players_xy = homography.transform_points(frame_players_xy)
+
+        if player_teams is not None:
+            # Draw players by team
+            team_colors = {
+                0: sv.Color.BLUE,  # Team 0
+                1: sv.Color.RED,  # Team 1
+                # Add more teams/colors if needed
+            }
+            for team_id in [0, 1]:
+                team_mask = player_teams == team_id
+                team_xy = pitch_players_xy[team_mask]
+                annotated_frame = draw_points_on_pitch(
+                    config=pitch_dimensions,
+                    xy=team_xy,
+                    face_color=team_colors.get(team_id),
+                    edge_color=sv.Color.BLACK,
+                    radius=16,
+                    pitch=annotated_frame
+                )
+        else:
+            # Draw all players the same way
+            annotated_frame = draw_points_on_pitch(
+                config=pitch_dimensions,
+                xy=pitch_players_xy,
+                face_color=sv.Color.BLUE,
+                edge_color=sv.Color.BLACK,
+                radius=16,
+                pitch=annotated_frame
+            )
 
     return annotated_frame
 
