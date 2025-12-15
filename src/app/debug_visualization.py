@@ -135,6 +135,3 @@ def render_detection_results(
     annotated_frame = draw_legend(annotated_frame, LEGEND_ITEMS)
 
     return annotated_frame
-
-
-
