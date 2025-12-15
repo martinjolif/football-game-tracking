@@ -209,3 +209,4 @@ __marimo__/
 # Specificities of the project
 runs/
 *.cache
+data/
