@@ -115,6 +115,17 @@ Training the classification model, you can call ``--help`` to see all the availa
 PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/train.py
 ```
 
+###### 3. Inference visualization
+
+Image visualization:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/image.py
+```
+With only one image, there will be around 20 player crops detected, which is maybe not enough to train a good clustering model. Therefore, there is also video visualization:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/video.py
+```
+
 ### Load models checkpoints
 
 Download model checkpoints from Hugging Face:

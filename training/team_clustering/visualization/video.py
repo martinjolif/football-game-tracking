@@ -8,6 +8,7 @@ from torchvision import transforms
 import cv2
 from tqdm import tqdm
 import numpy as np
+import argparse
 
 from src.app.api_to_supervision import detections_from_results
 from src.app.image_api import call_image_apis
@@ -15,6 +16,7 @@ from src.app.utils import collect_class_ids
 from src.team_clustering.utils import load_model
 from src.team_clustering.clustering_model import ClusteringModel
 
+from training.logger import LOGGER
 
 # ============================================================
 #               PROCESS VIDEO WITH TRAIN + INFERENCE
@@ -45,9 +47,9 @@ def process_video_clusters(
     if end_frame is None:
         end_frame = total_frames
 
-    print(f"Total video frames: {total_frames}")
-    print(f"Processing up to frame: {end_frame}")
-    print(f"Training clustering on frames {cluster_train_start} → {cluster_train_end}")
+    LOGGER.info(f"Total video frames: {total_frames}")
+    LOGGER.info(f"Processing up to frame: {end_frame}")
+    LOGGER.info(f"Training clustering on frames {cluster_train_start} → {cluster_train_end}")
 
     # load model (feature extractor)
     feature_model, _ = load_model(model_path, device)
@@ -115,7 +117,7 @@ def process_video_clusters(
     # ============================================================
 
     if len(train_crops) == 0:
-        print("❌ No detections during training segment!")
+        LOGGER.warning("❌ No detections during training segment!")
         return [], frame_idx
 
     train_tensor = torch.cat(train_crops, dim=0)
@@ -126,7 +128,7 @@ def process_video_clusters(
         clustering_model=KMeans(n_clusters=2)
     )
 
-    print("Training clustering...")
+    LOGGER.info("Training clustering...")
     train_labels = cluster_model.fit_predict(train_tensor)
 
     # ============================================================
@@ -135,7 +137,7 @@ def process_video_clusters(
 
     if len(infer_crops) > 0:
         infer_tensor = torch.cat(infer_crops, dim=0)
-        print("Predicting remaining frames...")
+        LOGGER.info("Predicting remaining frames...")
         infer_labels = cluster_model.predict(infer_tensor)
     else:
         infer_labels = np.array([])
@@ -160,18 +162,50 @@ def process_video_clusters(
 
     result.sort(key=lambda x: x[0])
 
-    print("Clustering complete.")
+    LOGGER.info("Clustering complete.")
     return result
 
 
 # ============================================================
 #                 RENDER VIDEO WITH ANNOTATIONS
 # ============================================================
+def draw_inference_message(frame, text="Inference started"):
+    overlay = frame.copy()
+
+    h, w = frame.shape[:2]
+
+    box_h = 60
+    y_offset = 40
+
+    cv2.rectangle(
+        overlay,
+        (0, y_offset),
+        (w, y_offset + box_h),
+        (0, 0, 0),
+        -1
+    )
+
+    alpha = 0.6
+    cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
+    cv2.putText(
+        frame,
+        text,
+        (20, y_offset + 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1.0,
+        (255, 255, 255),
+        2,
+        cv2.LINE_AA
+    )
+
+    return frame
 
 def write_cluster_video(
     video_path: str | Path,
     clustering_output,
     output_path="clustered_output.mp4",
+    train_end_frame: int | None = None,
     end_frame: int | None = None
 ):
     cap = cv2.VideoCapture(str(video_path))
@@ -181,7 +215,7 @@ def write_cluster_video(
 
     writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
 
-    print("Writing video...")
+    LOGGER.info("Writing video...")
 
     frame_dict = {frame_idx: (xyxy, labels) for frame_idx, xyxy, labels in clustering_output}
 
@@ -205,6 +239,13 @@ def write_cluster_video(
 
             annotated = box_annotator.annotate(scene=frame, detections=dets)
             annotated = label_annotator.annotate(scene=annotated, detections=dets, labels=label_texts)
+
+            if train_end_frame is not None and frame_idx > train_end_frame:
+                annotated = draw_inference_message(
+                    annotated,
+                    "Clustering training finished: inference started"
+                )
+
             writer.write(annotated)
         else:
             writer.write(frame)
@@ -213,31 +254,62 @@ def write_cluster_video(
 
     cap.release()
     writer.release()
-    print(f"Saved: {output_path}")
+    LOGGER.info(f"Saved: {output_path}")
 
     return output_path
 
+parser = argparse.ArgumentParser(description="Team clustering visualization.")
 
+parser.add_argument(
+    "--video-path",
+    type=Path,
+    default="england_epl/2014-2015/2015-02-22 - 19-15 Southampton 0 - 2 Liverpool/1_720p.mkv",
+    help="Path to the video file."
+)
+parser.add_argument(
+    "--model-path",
+    type=Path,
+    default="runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth",
+    help="Path to the feature extraction model."
+)
+parser.add_argument(
+    "--start-training-frame",
+    type=int,
+    default=0,
+    help="Frame index to start training clustering."
+)
+parser.add_argument(
+    "--end-training-frame",
+    type=int,
+    default=75,
+    help="Frame index to end training clustering."
+)
+parser.add_argument(
+    "--end-frame",
+    type=int,
+    default=150,
+    help="Maximum frame index to process."
+)
 
-video_path = "england_epl/2014-2015/2015-02-22 - 19-15 Southampton 0 - 2 Liverpool/1_720p.mkv"
-model_path = "runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth"
-device = device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+args = parser.parse_args()
 
-end_frame = 150
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+
 
 outputs = process_video_clusters(
-    video_path,
-    model_path,
+    args.video_path,
+    args.model_path,
     img_size=224,
     device=device,
-    cluster_train_start=0,
-    cluster_train_end=75,
-    end_frame=end_frame
+    cluster_train_start=args.start_training_frame,
+    cluster_train_end=args.end_training_frame,
+    end_frame=args.end_frame,
 )
 
 output_video_path = write_cluster_video(
-    video_path,
+    args.video_path,
     outputs,
-    output_path="global_cluster_output.mp4",
-    end_frame=end_frame
+    output_path="training/team_clustering/visualization/team_clustering.mp4",
+    train_end_frame=args.end_training_frame,
+    end_frame=args.end_frame
 )
