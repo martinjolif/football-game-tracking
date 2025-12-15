@@ -125,6 +125,7 @@ With only one image, there will be around 20 player crops detected, which is may
 ```
 PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/video.py
 ```
+You can call ``--help`` to see all the available options.
 
 ### Load models checkpoints
 

@@ -1,16 +1,16 @@
+import logging
 import sys
 import traceback
-import logging
 
 import cv2
 import supervision as sv
 
-from src.app.image_api import call_image_apis
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
-from src.app.player_tracking import visualize_frame
-from src.app.pitch_radar_visualization import render_pitch_radar
 from src.app.debug_visualization import render_detection_results
+from src.app.image_api import call_image_apis
+from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
+from src.radar.pitch_radar_visualization import render_pitch_radar
 
 PROCESSED_FRAME_INTERVAL = 50
 PLAYER_TRACKING_VIZ = False
