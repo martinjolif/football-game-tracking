@@ -41,7 +41,10 @@ class VizMode(Enum):
 FEATURE_MODES = {FeatureMode.RADAR, FeatureMode.TEAM}
 VIZ_MODES = {VizMode.RADAR}
 
-PROCESSED_FRAME_INTERVAL = 50
+save_video = True
+output_path = "output_video.mp4"
+end_frame = 200  # example: stop at frame 500
+
 cluster_train_frames = 50
 img_size = 224
 
@@ -109,10 +112,20 @@ try:
 
     cluster_labels = None
 
+    if save_video:
+        width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Initialize video writer
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        video_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
     while True:
         ret, frame = video_capture.read()
         if not ret:
             print("✅ End of video stream.")
+            break
+        if save_video and frame_count >= end_frame:
+            print(f"✅ Reached end frame {end_frame}. Stopping.")
             break
 
         frame_count += 1
@@ -222,9 +235,16 @@ try:
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
             break
 
+        if save_video:
+            # write frame to output video
+            video_writer.write(annotated_frame)
+
+
 except Exception:
     traceback.print_exc()
 finally:
     if video_capture is not None:
         video_capture.release()
+    if 'video_writer' in locals():
+        video_writer.release()
     cv2.destroyAllWindows()
