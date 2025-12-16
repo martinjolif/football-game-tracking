@@ -60,6 +60,8 @@ PYTHONPATH=$PYTHONPATH:./src python training/player_detection/evaluation.py
 ```
 Look at the ``training/player_detection/config.py`` file to modify some training/evaluation parameters.
 
+https://github.com/user-attachments/assets/c9f02e02-41b3-4fec-a8a2-7a447c3cbdc8
+
 
 #### Football ball detection
 
@@ -79,6 +81,7 @@ PYTHONPATH=$PYTHONPATH:./src python training/ball_detection/evaluation.py
 ```
 Look at the ``training/ball_detection/config.py`` file to modify some training/evaluation parameters.
 
+https://github.com/user-attachments/assets/6e6f6ce4-e8c1-4d2b-a350-ca779b9bf12b
 
 #### Football pitch detection
 
@@ -97,6 +100,10 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/train.py
 PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 ```
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
+
+
+https://github.com/user-attachments/assets/bf8c7738-691c-4948-b02d-d5b2a2fa84bc
+
 
 #### Team clustering
 The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color.
@@ -148,6 +155,10 @@ hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir w
 The idea is from the players, ball and pitch keypoints detection to create a 2D pitch radar that show us the position of the players and the ball in the pitch. 
 
 To do so, I need to track players and assign them an id, give them a class that corresponds to their team.
+
+
+https://github.com/user-attachments/assets/d3487c68-4465-431f-bc5a-c6ed7e8e51c8
+
 
 #### Player tracking
 
