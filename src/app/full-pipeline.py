@@ -36,6 +36,7 @@ class VizMode(Enum):
     PITCH = auto()
     RADAR = auto()        # can include team
     TRACKING = auto()
+    TEAM = auto()
 
 # ----------------- CONFIGURE MODES -----------------
 FEATURE_MODES = {FeatureMode.RADAR, FeatureMode.TEAM}
@@ -228,6 +229,15 @@ try:
 
         if VizMode.TRACKING in VIZ_MODES and player_detection:
             annotated_frame = render_tracker(frame, player_detection, box_annotator, tracker)
+
+        if VizMode.TEAM in VIZ_MODES and player_detection and cluster_labels is not None:
+            annotated_frame = render_teams(
+                annotated_frame,
+                player_detection,
+                cluster_labels,
+                team_box_annotator,
+                label_annotator
+            )
 
         if VizMode.RADAR in VIZ_MODES:
             radar = render_pitch_radar(
