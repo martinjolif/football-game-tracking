@@ -60,7 +60,9 @@ PYTHONPATH=$PYTHONPATH:./src python training/player_detection/evaluation.py
 ```
 Look at the ``training/player_detection/config.py`` file to modify some training/evaluation parameters.
 
-https://github.com/user-attachments/assets/c9f02e02-41b3-4fec-a8a2-7a447c3cbdc8
+
+https://github.com/user-attachments/assets/59e4bddd-440b-4ca3-bed5-ff4c64162094
+
 
 
 #### Football ball detection
@@ -81,7 +83,10 @@ PYTHONPATH=$PYTHONPATH:./src python training/ball_detection/evaluation.py
 ```
 Look at the ``training/ball_detection/config.py`` file to modify some training/evaluation parameters.
 
-https://github.com/user-attachments/assets/6e6f6ce4-e8c1-4d2b-a350-ca779b9bf12b
+
+
+https://github.com/user-attachments/assets/03f3074f-04f3-457c-9a24-c3997b2f81d0
+
 
 #### Football pitch detection
 
@@ -102,7 +107,10 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
 
 
-https://github.com/user-attachments/assets/bf8c7738-691c-4948-b02d-d5b2a2fa84bc
+
+https://github.com/user-attachments/assets/1b06d3cc-4872-4a6f-8233-dd49a72308fc
+
+
 
 
 #### Team clustering
@@ -138,6 +146,10 @@ PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/video
 ```
 You can call ``--help`` to see all the available options.
 
+
+https://github.com/user-attachments/assets/4c15c874-f247-4932-91cf-4414e414a2f8
+
+
 ### Load models checkpoints
 
 Download model checkpoints from Hugging Face:
@@ -157,7 +169,8 @@ The idea is from the players, ball and pitch keypoints detection to create a 2D 
 To do so, I need to track players and assign them an id, give them a class that corresponds to their team.
 
 
-https://github.com/user-attachments/assets/d3487c68-4465-431f-bc5a-c6ed7e8e51c8
+https://github.com/user-attachments/assets/aa09cd03-a4df-434f-93f6-7b57c800d5ea
+
 
 
 #### Player tracking
