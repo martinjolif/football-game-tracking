@@ -17,5 +17,5 @@ EPOCHS = 50
 
 # Evaluation configuration
 EVAL_BATCH_SIZE = 16
-MODEL_EVAL_PATH = "football-pitch-detection-yolov8n-pose7/weights/best.pt" # Path to the trained model for evaluation
+MODEL_EVAL_PATH = "football-pitch-detection-yolov8x-pose2/weights/best.pt" # Path to the trained model for evaluation
 PLOTS = True # Whether to generate plots during evaluation

@@ -38,6 +38,10 @@ then open http://127.0.0.1:5001/. You will see here the model you trained with t
 
 ### Train & Evaluate ML models
 
+To evaluate the model, we consider bounding-box–based detection metrics, including Precision, Recall, mAP@0.50, mAP@0.50–0.95, and inference speed. These metrics assess the accuracy and localization quality of predicted bounding boxes.
+
+For pose estimation tasks (pitch detection), the evaluation includes both bounding-box metrics and pose-specific metrics, allowing us to assess the accuracy and localization of predicted keypoints. Further details on these metrics are available in the Ultralytics documentation [here](https://docs.ultralytics.com/guides/yolo-performance-metrics/).
+
 #### Football player detection
 
 Download training/validation/test data:
