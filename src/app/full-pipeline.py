@@ -41,9 +41,9 @@ class VizMode(Enum):
 FEATURE_MODES = {FeatureMode.RADAR, FeatureMode.TEAM}
 VIZ_MODES = {VizMode.RADAR}
 
-save_video = True
+save_video = False
 output_path = "output_video.mp4"
-end_frame = 200  # example: stop at frame 500
+end_frame = 600  # example: stop at frame 500
 
 cluster_train_frames = 50
 img_size = 224
@@ -52,29 +52,30 @@ logger = logging.getLogger(__name__)
 video_path = "../videos/08fd33_4.mp4"
 
 # ================= TEAM CLUSTERING ===================
-model_path = Path("../../runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth")
-device = torch.device(
-    "cuda" if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available()
-    else "cpu"
-)
+if FeatureMode.TEAM in FEATURE_MODES:
+    model_path = Path("../../runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth")
+    device = torch.device(
+        "cuda" if torch.cuda.is_available()
+        else "mps" if torch.backends.mps.is_available()
+        else "cpu"
+    )
 
-feature_model, _ = load_model(model_path, device)
+    feature_model, _ = load_model(model_path, device)
 
-transform = transforms.Compose([
-    transforms.Resize(int(img_size * 256 / 224)),
-    transforms.CenterCrop(img_size),
-    transforms.ToTensor(),
-])
+    transform = transforms.Compose([
+        transforms.Resize(int(img_size * 256 / 224)),
+        transforms.CenterCrop(img_size),
+        transforms.ToTensor(),
+    ])
 
-cluster_model = ClusteringModel(
-    feature_extraction_model=feature_model,
-    dimension_reducer=umap.UMAP(n_neighbors=15, min_dist=0.1),
-    clustering_model=KMeans(n_clusters=2)
-)
+    cluster_model = ClusteringModel(
+        feature_extraction_model=feature_model,
+        dimension_reducer=umap.UMAP(n_neighbors=15, min_dist=0.1),
+        clustering_model=KMeans(n_clusters=2)
+    )
 
-train_crops = []
-train_labels_ready = False
+    train_crops = []
+    train_labels_ready = False
 
 # ================= RENDERERS ===================
 def render_teams(frame, detections, cluster_labels, team_box_annotator, label_annotator):
@@ -149,15 +150,26 @@ try:
         pitch_detection, keypoint_mask = None, None
 
         if "http://localhost:8000/player-detection/image" in results:
-            player_detection = detections_from_results(
-                results["http://localhost:8000/player-detection/image"]["detections"],
-                detected_class_ids=collect_class_ids(
-                    results,
-                    endpoint="http://localhost:8000/player-detection/image",
-                    mapping_key="mapping_class",
-                    roles=("player", "goalkeeper", "referee"),
-                ),
-            )
+            if FeatureMode.PLAYER_DETECTION in FEATURE_MODES:
+                human_detection = detections_from_results(
+                    results["http://localhost:8000/player-detection/image"]["detections"],
+                    detected_class_ids=collect_class_ids(
+                        results,
+                        endpoint="http://localhost:8000/player-detection/image",
+                        mapping_key="mapping_class",
+                        roles=("player", "goalkeeper", "referee"),
+                    ),
+                )
+            elif FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+                player_detection = detections_from_results(
+                    results["http://localhost:8000/player-detection/image"]["detections"],
+                    detected_class_ids=collect_class_ids(
+                        results,
+                        endpoint="http://localhost:8000/player-detection/image",
+                        mapping_key="mapping_class",
+                        roles=["player", "goalkeeper"],
+                    ),
+                )
 
         if "http://localhost:8001/ball-detection/image" in results:
             ball_detection = detections_from_results(
@@ -201,13 +213,13 @@ try:
                     cluster_labels = cluster_model.predict(crops_tensor).astype(int)
 
         # ---------------- VISUALIZATION ----------------
-        if VizMode.PLAYER in VIZ_MODES and player_detection:
-            annotated_frame = render_detection_results(annotated_frame, player_detections=player_detection)
+        if VizMode.PLAYER in VIZ_MODES:
+            annotated_frame = render_detection_results(annotated_frame, player_detections=human_detection)
 
-        if VizMode.BALL in VIZ_MODES and ball_detection:
+        if VizMode.BALL in VIZ_MODES:
             annotated_frame = render_detection_results(annotated_frame, ball_detection=ball_detection)
 
-        if VizMode.PITCH in VIZ_MODES and pitch_detection:
+        if VizMode.PITCH in VIZ_MODES:
             annotated_frame = render_detection_results(
                 annotated_frame,
                 pitch_detection=pitch_detection,
