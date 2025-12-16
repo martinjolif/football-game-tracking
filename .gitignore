@@ -210,3 +210,6 @@ __marimo__/
 runs/
 *.cache
 data/
+models/
+england_epl/
+weights/
