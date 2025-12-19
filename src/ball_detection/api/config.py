@@ -1,6 +1,6 @@
 import torch
 
-INFERENCE_MODEL_PATH = "weights/ball_detection/football-ball-detection-yolov8n2/weights/best.pt"  # Path to the trained model for inference
+INFERENCE_MODEL_PATH = "weights/ball_detection/football-ball-detection-yolo11n2/weights/best.pt"  # Path to the trained model for inference
 ALLOWED_IMG_TYPES = {"image/jpeg", "image/png"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 Mo
 if torch.cuda.is_available():
@@ -11,3 +11,4 @@ else:
     DEVICE = "cpu"
 IOU_THRESHOLD = 0.7
 CONFIDENCE_THRESHOLD = 0.25
+INFERENCE_IMG_SIZE = 1280

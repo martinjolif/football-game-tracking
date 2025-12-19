@@ -209,3 +209,7 @@ __marimo__/
 # Specificities of the project
 runs/
 *.cache
+data/
+models/
+england_epl/
+weights/

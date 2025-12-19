@@ -65,18 +65,9 @@ def extract_embeddings(model: nn.Module, imgs: torch.Tensor) -> np.ndarray:
     model.eval()
     with torch.no_grad():
         x = model.features(imgs)
-        # model.avgpool usually exists
-        if hasattr(model, "avgpool"):
-            x = model.avgpool(x)
-        else:
-            # fallback adaptive pool to (1,1)
-            x = torch.nn.functional.adaptive_avg_pool2d(x, (1, 1))
+        x = model.avgpool(x)
         x = torch.flatten(x, 1)
-        # apply classifier except last linear to get embedding
-        if isinstance(model.classifier, torch.nn.Sequential) and len(model.classifier) > 1:
-            feat = model.classifier[:-1](x)
-        else:
-            feat = x
+        feat = model.classifier[:-1](x)
     return feat.cpu().numpy()
 
 class InferenceJerseyDataset(Dataset):

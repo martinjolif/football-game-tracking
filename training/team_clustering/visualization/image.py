@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 
 import numpy as np
 import supervision as sv
@@ -99,7 +100,7 @@ def visualize_clusters(
 
     # ---- VISUALIZATION ----
     box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.DEFAULT)
-    label_annotator = sv.LabelAnnotator()
+    label_annotator = sv.LabelAnnotator(text_scale=0.4, text_padding=2)
 
     labels = [f"Cluster {c}" for c in cluster_labels]
 
@@ -111,24 +112,32 @@ def visualize_clusters(
     )
 
     # ---- SAVE OUTPUT ----
-    out_path = "clustered_players.jpg"
+    out_path = "training/team_clustering/visualization/team_clustering.jpg"
     Image.fromarray(annotated).save(out_path)
 
     return out_path
 
-
-#img_path = "training/team_clustering/data/extracted_frames/2014-2015/2015-02-21 - 18-00 Crystal Palace 1 - 2 Arsenal/1_720p/frame_015000.jpg"
-img_path = "training/player_detection/data/yolov8-format/test/images/4b770a_5_1_png.rf.0e545f155d15d96bb11eaf8a73ce357c.jpg"
-model_path = "runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth"
+parser = argparse.ArgumentParser(description="Visualize player clusters in an image.")
+parser.add_argument(
+    "--img-path",
+    type=str,
+    default="training/player_detection/data/test/images/4b770a_5_1_png.rf.0e545f155d15d96bb11eaf8a73ce357c.jpg",
+    help="Path to the image file to process.",
+)
+parser.add_argument(
+    "--model-path",
+    type=str,
+    default="runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth",
+    help="Path to the feature extraction model.",
+)
+args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 annotated_image = process_image(
-    image_path=img_path,
+    image_path=args.img_path,
     debug_player_detection=True
 )
 
-# Display the result
-out_path = "detected_players.jpg"
-Image.fromarray(annotated_image).save(out_path)
-out_image_path = visualize_clusters(img_path, model_path, 224, device)
+#save image to out_image_path
+out_image_path = visualize_clusters(args.img_path, args.model_path, 224, device)

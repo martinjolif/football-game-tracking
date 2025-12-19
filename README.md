@@ -38,6 +38,10 @@ then open http://127.0.0.1:5001/. You will see here the model you trained with t
 
 ### Train & Evaluate ML models
 
+To evaluate the model, we consider bounding-box–based detection metrics, including Precision, Recall, mAP@0.50, mAP@0.50–0.95, and inference speed. These metrics assess the accuracy and localization quality of predicted bounding boxes.
+
+For pose estimation tasks (pitch detection), the evaluation includes both bounding-box metrics and pose-specific metrics, allowing us to assess the accuracy and localization of predicted keypoints. Further details on these metrics are available in the Ultralytics documentation [here](https://docs.ultralytics.com/guides/yolo-performance-metrics/).
+
 #### Football player detection
 
 Download training/validation/test data:
@@ -55,6 +59,10 @@ The ``train.py`` file will both train and evaluate the model on the test set. Th
 PYTHONPATH=$PYTHONPATH:./src python training/player_detection/evaluation.py
 ```
 Look at the ``training/player_detection/config.py`` file to modify some training/evaluation parameters.
+
+
+https://github.com/user-attachments/assets/59e4bddd-440b-4ca3-bed5-ff4c64162094
+
 
 
 #### Football ball detection
@@ -76,6 +84,10 @@ PYTHONPATH=$PYTHONPATH:./src python training/ball_detection/evaluation.py
 Look at the ``training/ball_detection/config.py`` file to modify some training/evaluation parameters.
 
 
+
+https://github.com/user-attachments/assets/03f3074f-04f3-457c-9a24-c3997b2f81d0
+
+
 #### Football pitch detection
 
 Download training/validation/test data:
@@ -94,8 +106,15 @@ PYTHONPATH=$PYTHONPATH:./src python training/pitch_detection/evaluation.py
 ```
 Look at the ``training/pitch_detection/config.py`` file to modify some training/evaluation parameters.
 
+
+
+https://github.com/user-attachments/assets/1b06d3cc-4872-4a6f-8233-dd49a72308fc
+
+
+
+
 #### Team clustering
-The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color.
+The goal is first to create a dataset of player crops labeled by their color jersey in order to train a classification model that will be able to classify jersey colors. Hopefully, from there some layers from the classification model can be reused to create embeddings for clustering players by their jersey color. Indeed, identification based on the average color of the cropped images is unreliable. This is due to several factors, including varying backgrounds (grass, stands, other players) and changing lighting conditions.
 
 ###### 1. Dataset creation
 Extract frames from videos (SoccerNet dataset), you can call ``--help`` to see all the available options:
@@ -115,6 +134,22 @@ Training the classification model, you can call ``--help`` to see all the availa
 PYTHONPATH=$PYTHONPATH:./training python training/team_clustering/train.py
 ```
 
+###### 3. Inference visualization
+
+Image visualization:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/image.py
+```
+With only one image, there will be around 20 player crops detected, which is maybe not enough to train a good clustering model. Therefore, there is also video visualization:
+```
+PYTHONPATH=$PYTHONPATH:./src python training/team_clustering/visualization/video.py
+```
+You can call ``--help`` to see all the available options.
+
+
+https://github.com/user-attachments/assets/4c15c874-f247-4932-91cf-4414e414a2f8
+
+
 ### Load models checkpoints
 
 Download model checkpoints from Hugging Face:
@@ -123,26 +158,11 @@ hf download martinjolif/yolo-football-player-detection --local-dir weights/playe
 hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
 ```
 
-
-
 ### 2D Pitch Radar
 
-(Still in progress)
+The idea is from the players, ball and pitch keypoints detection to create a 2D pitch radar that show us the position of the players and the ball in the pitch. We use homography to compute the position of the players and the ball on the pitch and label them with their jersey color cluster.
 
-The idea is from the players, ball and pitch keypoints detection to create a 2D pitch radar that show us the position of the players and the ball in the pitch. 
-
-To do so, I need to track players and assign them an id, give them a class that corresponds to their team.
-
-#### Player tracking
-
-Set the variable ``PLAYER_TRACKING_VIZ`` to ``True`` in order to visualize the tracking output by running the ``video_to_frames.py`` script.
-
-#### Team classification
-
-Goal: identify player team from their corresponding crop images found by the player detection part. 
-
-Unfortunately, identification via the average color pixels of the crop isn't working well due to several things: background (grass, stands, other players...), size of the crops vary a lot, lightning.
-
+https://github.com/user-attachments/assets/aa09cd03-a4df-434f-93f6-7b57c800d5ea
 
 ### Run tests
 ```

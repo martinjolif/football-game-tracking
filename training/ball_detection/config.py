@@ -1,6 +1,6 @@
 import torch
 # Global configuration settings for training and evaluating a YOLO object detection model
-IMG_SIZE = 640
+IMG_SIZE = 1280
 if torch.cuda.is_available():
     DEVICE = "0"
 elif torch.backends.mps.is_available():
@@ -17,5 +17,5 @@ EPOCHS = 50
 
 # Evaluation configuration
 EVAL_BATCH_SIZE = 16
-MODEL_EVAL_PATH = "football-ball-detection-yolov8n2/weights/best.pt" # Path to the trained model for evaluation
+MODEL_EVAL_PATH = "football-ball-detection-yolo11n2/weights/best.pt" # Path to the trained model for evaluation
 PLOTS = True # Whether to generate plots during evaluation
