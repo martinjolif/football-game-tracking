@@ -16,11 +16,13 @@ ENV PATH="/root/.local/bin/:$PATH"
 # Commands will be run from /app
 WORKDIR /app
 
-# Copy content to /app
-COPY . /app
+COPY pyproject.toml uv.lock .python-version ./
 
 # Synchronize uv env
 RUN uv venv && uv sync --no-dev
+
+# Copy content to /app
+COPY . /app
 
 RUN uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights \
     && uv run hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights

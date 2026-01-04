@@ -3,10 +3,16 @@
 .gitignore
 .gitattributes
 
+# GitHUb Actions
+.github/workflows/
+
 # CI
 .codeclimate.yml
 .travis.yml
 .taskcluster.yml
+
+# Pytest
+.pytest_cache/
 
 # Docker
 docker-compose.yml
@@ -17,9 +23,6 @@ Dockerfile
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
 **/*.py[cod]
-
-# C extensions
-*.so
 
 # Distribution / packaging
 .Python
@@ -38,37 +41,6 @@ var/
 .installed.cfg
 *.egg
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
 # Virtual environment
 .env
 .venv/
@@ -76,13 +48,7 @@ venv/
 
 # PyCharm
 .idea
-
-# Python mode for VIM
-.ropeproject
-**/.ropeproject
-
-# Vim swap files
-**/*.swp
+.jbeval
 
 # VS Code
 .vscode/
@@ -96,12 +62,16 @@ LICENSE
 # README files
 README.md
 
+# Image files
+*.png
+*.jpg
+
+# Video files
+*.mp4
+*.mkv
+
 # My project files
 england_epl/
 runs/
 tests/
 training/
-
-# Image files
-*.png
-*.jpg
