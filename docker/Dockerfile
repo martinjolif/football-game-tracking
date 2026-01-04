@@ -22,7 +22,7 @@ COPY pyproject.toml uv.lock .python-version ./
 RUN uv venv && uv sync --no-dev
 
 # Copy content to /app
-COPY src /app
+COPY src ./src
 
 RUN uv run hf download martinjolif/yolo-football-player-detection yolo-football-player-detection.pt \
     --local-dir weights/player_detection/hf_weights \
