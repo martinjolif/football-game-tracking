@@ -1,4 +1,77 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHUb Actions
+.github/workflows/
+
+# CI
+.codeclimate.yml
+.travis.yml
+.taskcluster.yml
+
+# Pytest
+.pytest_cache/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.docker
+.dockerignore
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+**/*.py[cod]
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.env
 .venv/
+venv/
+
+# PyCharm
+.idea
+.jbeval
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# LICENSE files
+LICENSE
+
+# README files
+README.md
+
+# Image files
+*.png
+*.jpg
+
+# Video files
+*.mp4
+*.mkv
+
+# My project files
 england_epl/
 runs/
+tests/
 training/

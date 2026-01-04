@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.120.1",
-    "onnx>=1.19.1",
     "python-multipart>=0.0.20",
     "trackers>=2.0.1",
     "supervision==0.27.0rc4",
@@ -15,11 +14,11 @@ dependencies = [
     "umap-learn>=0.5.9.post2",
     "transformers>=4.57.3",
     "opencv-python>=4.11.0.86",
+    "huggingface-hub>=0.36.0",
 ]
 
 [dependency-groups]
 dev = [
-    "huggingface-hub>=0.36.0",
     "mlflow>=3.6.0",
     "pytest>=9.0.0",
     "seaborn>=0.13.2",
