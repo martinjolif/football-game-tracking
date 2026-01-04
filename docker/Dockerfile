@@ -22,9 +22,11 @@ COPY pyproject.toml uv.lock .python-version ./
 RUN uv venv && uv sync --no-dev
 
 # Copy content to /app
-COPY . /app
+COPY src /app
 
-RUN uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights \
-    && uv run hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
+RUN uv run hf download martinjolif/yolo-football-player-detection yolo-football-player-detection.pt \
+    --local-dir weights/player_detection/hf_weights \
+    && uv run hf download martinjolif/mobilenetv3-football-jersey-classification \
+    mobilenetv3-football-jersey-classification.pth --local-dir weights/team_clustering/hf_weights
 
 ENTRYPOINT ["uv", "run", "--no-sync", "uvicorn",  "src.player_detection.api.app:app", "--host", "0.0.0.0", "--port",  "8000"]
