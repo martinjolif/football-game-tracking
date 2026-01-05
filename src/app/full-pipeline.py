@@ -152,6 +152,7 @@ try:
 
         # ---------------- FEATURE EXTRACTION ----------------
         player_detection = None
+        human_detection = None
         ball_detection = None
         pitch_detection, keypoint_mask = None, None
 
@@ -196,7 +197,9 @@ try:
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None
 
         # ---------------- TRACKER ----------------
-        if tracker and player_detection:
+        if tracker and (player_detection or human_detection):
+            if player_detection is None:
+                player_detection = human_detection
             player_detection = tracker.update_with_detections(player_detection)
 
         # ---------------- TEAM CLUSTERING ----------------
@@ -261,7 +264,7 @@ try:
 
             if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
                 commentary = generate_commentary_ollama(ball_xy=ball_xy, players_xy=players_xy, cluster_labels=cluster_labels, pitch=PitchDimensions())
-                annotated_frame = draw_commentary(annotated_frame, commentary, start_xy=(w//2, 0.01*h))
+                annotated_frame = draw_commentary(annotated_frame, commentary, start_xy=(w//2, 0.05*h))
 
         cv2.imshow("Visualization", annotated_frame)
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
