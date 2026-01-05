@@ -118,7 +118,7 @@ def process_image(
     elif pitch_radar_viz:
         h, w, _ = frame.shape
         annotated_frame = frame.copy()
-        radar = render_pitch_radar(pitch_detection, keypoint_mask, player_detection, ball_detection)
+        radar, players_xy, ball_xy = render_pitch_radar(pitch_detection, keypoint_mask, player_detection, ball_detection)
         radar = sv.resize_image(radar, (w//2, h//2))
         radar_h, radar_w, _ = radar.shape
         rect = sv.Rect(

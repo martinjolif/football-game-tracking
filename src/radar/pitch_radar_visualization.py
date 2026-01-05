@@ -12,8 +12,9 @@ def render_pitch_radar(
     keypoint_mask: np.ndarray,
     player_detection_output: Optional[sv.Detections] = None,
     ball_detection_output: Optional[sv.Detections] = None,
-    player_teams: Optional[np.ndarray] = None
-) -> np.ndarray:
+    player_teams: Optional[np.ndarray] = None,
+    return_pitch_positions: bool = False
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     """
         Generates a soccer pitch visualization with player and ball positions overlaid.
         Args:
@@ -22,9 +23,10 @@ def render_pitch_radar(
             player_detection_output (sv.Detections): Player detection results containing anchor coordinates.
             ball_detection_output (sv.Detections): Ball detection results containing anchor coordinates.
             player_teams (np.ndarray): Array of integers specifying the team for each player.
+            return_pitch_positions (bool): If True, also returns the pitch coordinates of players and ball.
 
         Returns:
-            np.ndarray: Annotated image of the soccer pitch with player and ball positions.
+            np.ndarray, np.ndarray, np.ndarray: Annotated image, player positions on pitch, ball position on pitch.
     """
     pitch_dimensions = PitchDimensions()
     frame_points = pitch_detection_output.xy[0].astype(np.float32)
@@ -78,7 +80,10 @@ def render_pitch_radar(
                 pitch=annotated_frame
             )
 
-    return annotated_frame
+    if not return_pitch_positions:
+        pitch_players_xy = None
+        pitch_ball_xy = None
+    return annotated_frame, pitch_players_xy, pitch_ball_xy
 
 def draw_pitch(
     config: PitchDimensions,

@@ -20,6 +20,9 @@ from src.app.utils import collect_class_ids
 from src.radar.pitch_radar_visualization import render_pitch_radar
 from src.team_clustering.clustering_model import ClusteringModel
 from src.team_clustering.utils import load_model
+from src.commentary_generation.main import generate_commentary_ollama
+from src.commentary_generation.plot import draw_commentary
+from src.radar.pitch_dimensions import PitchDimensions
 
 # ====================== FEATURE & VISUALIZATION MODES ======================
 class FeatureMode(Enum):
@@ -29,6 +32,7 @@ class FeatureMode(Enum):
     RADAR = auto()        # always activates player + ball + pitch
     TRACKING = auto()     # can track player or ball or both
     TEAM = auto()         # needs player, optionally ball/pitch/tracking
+    COMMENTARY = auto()   # needs player, ball, pitch and team
 
 class VizMode(Enum):
     PLAYER = auto()
@@ -37,10 +41,11 @@ class VizMode(Enum):
     RADAR = auto()        # can include team
     TRACKING = auto()
     TEAM = auto()
+    COMMENTARY = auto()
 
 # ----------------- CONFIGURE MODES -----------------
-FEATURE_MODES = {FeatureMode.RADAR, FeatureMode.TEAM}
-VIZ_MODES = {VizMode.RADAR}
+FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM}
+VIZ_MODES = {VizMode.COMMENTARY, VizMode.RADAR}
 
 save_video = False
 output_path = "output_video.mp4"
@@ -136,11 +141,11 @@ try:
 
         # ---------------- DETECTION ENDPOINTS ----------------
         endpoints = []
-        if FeatureMode.PLAYER_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TRACKING in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+        if FeatureMode.PLAYER_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES or FeatureMode.TRACKING in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
             endpoints.append("http://localhost:8000/player-detection/image")
-        if FeatureMode.BALL_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES:
+        if FeatureMode.BALL_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES:
             endpoints.append("http://localhost:8001/ball-detection/image")
-        if FeatureMode.PITCH_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+        if FeatureMode.PITCH_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
             endpoints.append("http://localhost:8002/pitch-detection/image")
 
         results = call_image_apis(endpoints=endpoints, image_bytes=frame_bytes)
@@ -161,7 +166,7 @@ try:
                         roles=("player", "goalkeeper", "referee"),
                     ),
                 )
-            elif FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+            elif FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES:
                 player_detection = detections_from_results(
                     results["http://localhost:8000/player-detection/image"]["detections"],
                     detected_class_ids=collect_class_ids(
@@ -239,19 +244,24 @@ try:
                 label_annotator
             )
 
-        if VizMode.RADAR in VIZ_MODES:
-            radar = render_pitch_radar(
+        if VizMode.RADAR in VIZ_MODES or VizMode.COMMENTARY in VIZ_MODES:
+            radar, players_xy, ball_xy = render_pitch_radar(
                 pitch_detection,
                 keypoint_mask,
                 player_detection,
                 ball_detection,
-                player_teams=cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None
+                player_teams=cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None,
+                return_pitch_positions= True if FeatureMode.COMMENTARY in FEATURE_MODES else False
             )
             h, w, _ = frame.shape
             radar = sv.resize_image(radar, (w // 2, h // 2))
             radar_h, radar_w, _ = radar.shape
             rect = sv.Rect(x=w // 2 - radar_w // 2, y=h - radar_h, width=radar_w, height=radar_h)
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
+
+            if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
+                commentary = generate_commentary_ollama(ball_xy=ball_xy, players_xy=players_xy, cluster_labels=cluster_labels, pitch=PitchDimensions())
+                annotated_frame = draw_commentary(annotated_frame, commentary, start_xy=(w//2, 0.01*h))
 
         cv2.imshow("Visualization", annotated_frame)
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
