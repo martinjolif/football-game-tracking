@@ -1,4 +1,3 @@
-import logging
 import sys
 import traceback
 from enum import Enum, auto
@@ -12,17 +11,19 @@ from PIL import Image
 from sklearn.cluster import KMeans
 from torchvision import transforms
 
+from commentary_generation.events3 import get_left_team, assign_teams
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
 from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
-from src.radar.pitch_radar_visualization import render_pitch_radar
-from src.team_clustering.clustering_model import ClusteringModel
-from src.team_clustering.utils import load_model
 from src.commentary_generation.main import generate_commentary_ollama
 from src.commentary_generation.plot import draw_commentary
 from src.radar.pitch_dimensions import PitchDimensions
+from src.radar.pitch_radar_visualization import render_pitch_radar
+from src.team_clustering.clustering_model import ClusteringModel
+from src.team_clustering.utils import load_model
+from src.utils.logger import LOGGER
 
 # ====================== FEATURE & VISUALIZATION MODES ======================
 class FeatureMode(Enum):
@@ -47,14 +48,13 @@ class VizMode(Enum):
 FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM}
 VIZ_MODES = {VizMode.COMMENTARY, VizMode.RADAR}
 
-save_video = False
+save_video = True
 output_path = "output_video.mp4"
 end_frame = 600  # example: stop at frame 500
 
 cluster_train_frames = 50
 img_size = 224
 
-logger = logging.getLogger(__name__)
 video_path = "../videos/08fd33_4.mp4"
 
 # ================= TEAM CLUSTERING ===================
@@ -118,6 +118,8 @@ try:
     label_annotator = sv.LabelAnnotator(text_scale=0.5)
 
     cluster_labels = None
+    last_commentary = None
+    left_team, right_team = None, None
 
     if save_video:
         width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -129,10 +131,10 @@ try:
     while True:
         ret, frame = video_capture.read()
         if not ret:
-            print("✅ End of video stream.")
+            LOGGER.info("✅ End of video stream.")
             break
         if save_video and frame_count >= end_frame:
-            print(f"✅ Reached end frame {end_frame}. Stopping.")
+            LOGGER.info(f"✅ Reached end frame {end_frame}. Stopping.")
             break
 
         frame_count += 1
@@ -216,7 +218,7 @@ try:
                 elif not train_labels_ready:
                     cluster_model.fit_predict(torch.cat(train_crops, dim=0))
                     train_labels_ready = True
-                    print("✅ Team clustering trained")
+                    LOGGER.info("✅ Team clustering trained")
 
                 if train_labels_ready:
                     cluster_labels = cluster_model.predict(crops_tensor).astype(int)
@@ -253,8 +255,9 @@ try:
                 keypoint_mask,
                 player_detection,
                 ball_detection,
-                player_teams=cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None,
-                return_pitch_positions= True if FeatureMode.COMMENTARY in FEATURE_MODES else False
+                player_teams = cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None,
+                return_pitch_positions = True if FeatureMode.COMMENTARY in FEATURE_MODES else False,
+                team_colors_legend = {left_team: sv.Color.BLUE, right_team: sv.Color.RED} if frame_count > cluster_train_frames + 1 else None
             )
             h, w, _ = frame.shape
             radar = sv.resize_image(radar, (w // 2, h // 2))
@@ -263,8 +266,30 @@ try:
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
 
             if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
-                commentary = generate_commentary_ollama(ball_xy=ball_xy, players_xy=players_xy, cluster_labels=cluster_labels, pitch=PitchDimensions())
-                annotated_frame = draw_commentary(annotated_frame, commentary, start_xy=(w//2, 0.05*h))
+                if frame_count == cluster_train_frames + 1:
+                    players = assign_teams(players_xy, cluster_labels)
+                    left_team, right_team = get_left_team(players)
+
+                commentary = None
+                if ball_xy is not None and len(ball_xy) > 0 and left_team is not None and right_team is not None:
+                    commentary = generate_commentary_ollama(
+                        ball_xy=ball_xy,
+                        players_xy=players_xy,
+                        cluster_labels=cluster_labels,
+                        left_team=left_team,
+                        right_team=right_team,
+                        pitch=PitchDimensions()
+                    )
+
+                if commentary is not None:
+                    last_commentary = commentary
+
+                if last_commentary is not None:
+                    annotated_frame = draw_commentary(
+                        annotated_frame,
+                        last_commentary,
+                        start_xy=(w // 2, int(0.05 * h))
+                    )
 
         cv2.imshow("Visualization", annotated_frame)
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
