@@ -11,7 +11,7 @@ from PIL import Image
 from sklearn.cluster import KMeans
 from torchvision import transforms
 
-from commentary_generation.events3 import get_left_team, assign_teams
+from commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
@@ -48,7 +48,7 @@ class VizMode(Enum):
 FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM}
 VIZ_MODES = {VizMode.COMMENTARY, VizMode.RADAR}
 
-save_video = True
+save_video = False
 output_path = "output_video.mp4"
 end_frame = 600  # example: stop at frame 500
 
@@ -119,6 +119,9 @@ try:
 
     cluster_labels = None
     last_commentary = None
+    last_ball_xy = None
+    ball_movement_threshold = 100 # in centimeters on the pitch
+    last_possession_team = None
     left_team, right_team = None, None
 
     if save_video:
@@ -271,18 +274,33 @@ try:
                     left_team, right_team = get_left_team(players)
 
                 commentary = None
-                if ball_xy is not None and len(ball_xy) > 0 and left_team is not None and right_team is not None:
-                    commentary = generate_commentary_ollama(
-                        ball_xy=ball_xy,
-                        players_xy=players_xy,
-                        cluster_labels=cluster_labels,
-                        left_team=left_team,
-                        right_team=right_team,
-                        pitch=PitchDimensions()
-                    )
+                possession_team = None
 
-                if commentary is not None:
-                    last_commentary = commentary
+                if ball_xy is not None and len(ball_xy) > 0 and left_team is not None and right_team is not None:
+                    players = assign_teams(players_xy, cluster_labels)
+                    possession_team = players[get_ball_possessor(ball_xy, players_xy)]['team'] if get_ball_possessor(ball_xy, players_xy) is not None else None
+
+                    generate_new_commentary = False
+                    if last_ball_xy is None or last_possession_team is None:
+                        generate_new_commentary = True
+                    else:
+                        ball_movement = ((ball_xy[0][0] - last_ball_xy[0][0]) ** 2 + (ball_xy[0][1] - last_ball_xy[0][1]) ** 2) ** 0.5
+                        if ball_movement > ball_movement_threshold or possession_team != last_possession_team:
+                            generate_new_commentary = True
+
+                    if generate_new_commentary:
+                        commentary = generate_commentary_ollama(
+                            ball_xy=ball_xy,
+                            players_xy=players_xy,
+                            cluster_labels=cluster_labels,
+                            left_team=left_team,
+                            right_team=right_team,
+                            pitch=PitchDimensions()
+                        )
+                        if commentary is not None:
+                            last_commentary = commentary
+                        last_ball_xy = ball_xy
+                        last_possession_team = possession_team
 
                 if last_commentary is not None:
                     annotated_frame = draw_commentary(
