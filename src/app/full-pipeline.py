@@ -1,5 +1,6 @@
 import sys
 import traceback
+from collections import defaultdict, deque
 from enum import Enum, auto
 from pathlib import Path
 
@@ -45,8 +46,10 @@ class VizMode(Enum):
     COMMENTARY = auto()
 
 # ----------------- CONFIGURE MODES -----------------
-FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM}
+FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM, FeatureMode.TRACKING}
 VIZ_MODES = {VizMode.COMMENTARY, VizMode.RADAR}
+
+CLUSTER_HISTORY_LENGTH = 20
 
 save_video = False
 output_path = "output_video.mp4"
@@ -102,7 +105,8 @@ def render_tracker(frame, detections, box_annotator, tracker):
 
 # ================= VIDEO PROCESSING ===================
 video_capture = None
-tracker = sv.ByteTrack(minimum_consecutive_frames=5) if FeatureMode.TRACKING in FEATURE_MODES else None
+player_tracker = sv.ByteTrack(minimum_consecutive_frames=5) if FeatureMode.TRACKING in FEATURE_MODES else None
+recent_clusters = defaultdict(lambda: deque(maxlen=CLUSTER_HISTORY_LENGTH))
 
 try:
     video_capture = cv2.VideoCapture(video_path)
@@ -120,7 +124,7 @@ try:
     cluster_labels = None
     last_commentary = None
     last_ball_xy = None
-    ball_movement_threshold = 100 # in centimeters on the pitch
+    ball_movement_threshold = 200 # in centimeters on the pitch
     last_possession_team = None
     left_team, right_team = None, None
 
@@ -202,10 +206,10 @@ try:
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None
 
         # ---------------- TRACKER ----------------
-        if tracker and (player_detection or human_detection):
+        if player_tracker and (player_detection or human_detection):
             if player_detection is None:
                 player_detection = human_detection
-            player_detection = tracker.update_with_detections(player_detection)
+            player_detection = player_tracker.update_with_detections(player_detection)
 
         # ---------------- TEAM CLUSTERING ----------------
         if FeatureMode.TEAM in FEATURE_MODES and player_detection and len(player_detection.xyxy) > 0:
@@ -226,6 +230,15 @@ try:
                 if train_labels_ready:
                     cluster_labels = cluster_model.predict(crops_tensor).astype(int)
 
+                    # Correct clusters based on tracker_id history
+                    if player_detection.tracker_id is not None:
+                        for i, tracker_id in enumerate(player_detection.tracker_id):
+                            # Add current cluster to history
+                            recent_clusters[tracker_id].append(cluster_labels[i])
+                            # Assign the most frequent cluster in last 20 frames
+                            cluster_labels[i] = max(set(recent_clusters[tracker_id]),
+                                                    key=recent_clusters[tracker_id].count)
+
         # ---------------- VISUALIZATION ----------------
         if VizMode.PLAYER in VIZ_MODES:
             annotated_frame = render_detection_results(annotated_frame, player_detections=human_detection)
@@ -241,7 +254,7 @@ try:
             )
 
         if VizMode.TRACKING in VIZ_MODES and player_detection:
-            annotated_frame = render_tracker(frame, player_detection, box_annotator, tracker)
+            annotated_frame = render_tracker(frame, player_detection, box_annotator, player_tracker)
 
         if VizMode.TEAM in VIZ_MODES and player_detection and cluster_labels is not None:
             annotated_frame = render_teams(
