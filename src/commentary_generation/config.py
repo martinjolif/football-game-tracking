@@ -1,1 +1,3 @@
-LLM_MODEL = "qwen2.5:0.5b"
+LLM_MODEL = "smollm2:1.7b"
+TEMPERATURE = 0.7
+TOP_P = 0.8
