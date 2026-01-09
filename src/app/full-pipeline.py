@@ -1,6 +1,6 @@
-import logging
 import sys
 import traceback
+from collections import defaultdict, deque
 from enum import Enum, auto
 from pathlib import Path
 
@@ -12,14 +12,19 @@ from PIL import Image
 from sklearn.cluster import KMeans
 from torchvision import transforms
 
+from commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
 from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
+from src.commentary_generation.main import generate_commentary_ollama
+from src.commentary_generation.plot import draw_commentary
+from src.radar.pitch_dimensions import PitchDimensions
 from src.radar.pitch_radar_visualization import render_pitch_radar
 from src.team_clustering.clustering_model import ClusteringModel
 from src.team_clustering.utils import load_model
+from src.utils.logger import LOGGER
 
 # ====================== FEATURE & VISUALIZATION MODES ======================
 class FeatureMode(Enum):
@@ -29,6 +34,7 @@ class FeatureMode(Enum):
     RADAR = auto()        # always activates player + ball + pitch
     TRACKING = auto()     # can track player or ball or both
     TEAM = auto()         # needs player, optionally ball/pitch/tracking
+    COMMENTARY = auto()   # needs player, ball, pitch and team
 
 class VizMode(Enum):
     PLAYER = auto()
@@ -37,10 +43,13 @@ class VizMode(Enum):
     RADAR = auto()        # can include team
     TRACKING = auto()
     TEAM = auto()
+    COMMENTARY = auto()
 
 # ----------------- CONFIGURE MODES -----------------
-FEATURE_MODES = {FeatureMode.RADAR, FeatureMode.TEAM}
-VIZ_MODES = {VizMode.RADAR}
+FEATURE_MODES = {FeatureMode.COMMENTARY, FeatureMode.TEAM, FeatureMode.TRACKING}
+VIZ_MODES = {VizMode.COMMENTARY, VizMode.RADAR}
+
+CLUSTER_HISTORY_LENGTH = 20
 
 save_video = False
 output_path = "output_video.mp4"
@@ -49,7 +58,6 @@ end_frame = 600  # example: stop at frame 500
 cluster_train_frames = 50
 img_size = 224
 
-logger = logging.getLogger(__name__)
 video_path = "../videos/08fd33_4.mp4"
 
 # ================= TEAM CLUSTERING ===================
@@ -97,7 +105,8 @@ def render_tracker(frame, detections, box_annotator, tracker):
 
 # ================= VIDEO PROCESSING ===================
 video_capture = None
-tracker = sv.ByteTrack(minimum_consecutive_frames=5) if FeatureMode.TRACKING in FEATURE_MODES else None
+player_tracker = sv.ByteTrack(minimum_consecutive_frames=5) if FeatureMode.TRACKING in FEATURE_MODES else None
+recent_clusters = defaultdict(lambda: deque(maxlen=CLUSTER_HISTORY_LENGTH))
 
 try:
     video_capture = cv2.VideoCapture(video_path)
@@ -113,6 +122,11 @@ try:
     label_annotator = sv.LabelAnnotator(text_scale=0.5)
 
     cluster_labels = None
+    last_commentary = None
+    last_ball_xy = None
+    ball_movement_threshold = 200 # in centimeters on the pitch
+    last_possession_team = None
+    left_team, right_team, teams_barycenter = None, None, None
 
     if save_video:
         width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -124,10 +138,10 @@ try:
     while True:
         ret, frame = video_capture.read()
         if not ret:
-            print("✅ End of video stream.")
+            LOGGER.info("✅ End of video stream.")
             break
         if save_video and frame_count >= end_frame:
-            print(f"✅ Reached end frame {end_frame}. Stopping.")
+            LOGGER.info(f"✅ Reached end frame {end_frame}. Stopping.")
             break
 
         frame_count += 1
@@ -136,17 +150,18 @@ try:
 
         # ---------------- DETECTION ENDPOINTS ----------------
         endpoints = []
-        if FeatureMode.PLAYER_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TRACKING in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+        if FeatureMode.PLAYER_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES or FeatureMode.TRACKING in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
             endpoints.append("http://localhost:8000/player-detection/image")
-        if FeatureMode.BALL_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES:
+        if FeatureMode.BALL_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES:
             endpoints.append("http://localhost:8001/ball-detection/image")
-        if FeatureMode.PITCH_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+        if FeatureMode.PITCH_DETECTION in FEATURE_MODES or FeatureMode.RADAR in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
             endpoints.append("http://localhost:8002/pitch-detection/image")
 
         results = call_image_apis(endpoints=endpoints, image_bytes=frame_bytes)
 
         # ---------------- FEATURE EXTRACTION ----------------
         player_detection = None
+        human_detection = None
         ball_detection = None
         pitch_detection, keypoint_mask = None, None
 
@@ -161,7 +176,7 @@ try:
                         roles=("player", "goalkeeper", "referee"),
                     ),
                 )
-            elif FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES:
+            elif FeatureMode.RADAR in FEATURE_MODES or FeatureMode.TEAM in FEATURE_MODES or FeatureMode.COMMENTARY in FEATURE_MODES:
                 player_detection = detections_from_results(
                     results["http://localhost:8000/player-detection/image"]["detections"],
                     detected_class_ids=collect_class_ids(
@@ -191,8 +206,10 @@ try:
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None
 
         # ---------------- TRACKER ----------------
-        if tracker and player_detection:
-            player_detection = tracker.update_with_detections(player_detection)
+        if player_tracker and (player_detection or human_detection):
+            if player_detection is None:
+                player_detection = human_detection
+            player_detection = player_tracker.update_with_detections(player_detection)
 
         # ---------------- TEAM CLUSTERING ----------------
         if FeatureMode.TEAM in FEATURE_MODES and player_detection and len(player_detection.xyxy) > 0:
@@ -208,10 +225,19 @@ try:
                 elif not train_labels_ready:
                     cluster_model.fit_predict(torch.cat(train_crops, dim=0))
                     train_labels_ready = True
-                    print("✅ Team clustering trained")
+                    LOGGER.info("✅ Team clustering trained")
 
                 if train_labels_ready:
                     cluster_labels = cluster_model.predict(crops_tensor).astype(int)
+
+                    # Correct clusters based on tracker_id history
+                    if player_detection.tracker_id is not None:
+                        for i, tracker_id in enumerate(player_detection.tracker_id):
+                            # Add current cluster to history
+                            recent_clusters[tracker_id].append(cluster_labels[i])
+                            # Assign the most frequent cluster in last 20 frames
+                            cluster_labels[i] = max(set(recent_clusters[tracker_id]),
+                                                    key=recent_clusters[tracker_id].count)
 
         # ---------------- VISUALIZATION ----------------
         if VizMode.PLAYER in VIZ_MODES:
@@ -228,7 +254,7 @@ try:
             )
 
         if VizMode.TRACKING in VIZ_MODES and player_detection:
-            annotated_frame = render_tracker(frame, player_detection, box_annotator, tracker)
+            annotated_frame = render_tracker(frame, player_detection, box_annotator, player_tracker)
 
         if VizMode.TEAM in VIZ_MODES and player_detection and cluster_labels is not None:
             annotated_frame = render_teams(
@@ -239,19 +265,64 @@ try:
                 label_annotator
             )
 
-        if VizMode.RADAR in VIZ_MODES:
-            radar = render_pitch_radar(
+        if VizMode.RADAR in VIZ_MODES or VizMode.COMMENTARY in VIZ_MODES:
+            radar, players_xy, ball_xy = render_pitch_radar(
                 pitch_detection,
                 keypoint_mask,
                 player_detection,
                 ball_detection,
-                player_teams=cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None
+                player_teams = cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None,
+                return_pitch_positions = True if FeatureMode.COMMENTARY in FEATURE_MODES else False,
+                team_colors_legend = {left_team: sv.Color.BLUE, right_team: sv.Color.RED} if frame_count > cluster_train_frames + 1 else None
             )
             h, w, _ = frame.shape
             radar = sv.resize_image(radar, (w // 2, h // 2))
             radar_h, radar_w, _ = radar.shape
             rect = sv.Rect(x=w // 2 - radar_w // 2, y=h - radar_h, width=radar_w, height=radar_h)
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
+
+            if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
+                if frame_count == cluster_train_frames + 1:
+                    players = assign_teams(players_xy, cluster_labels)
+                    left_team, right_team, teams_barycenter = get_left_team(players)
+
+                commentary = None
+                possession_team = None
+
+                if ball_xy is not None and len(ball_xy) > 0 and left_team is not None and right_team is not None:
+                    players = assign_teams(players_xy, cluster_labels)
+                    possession_team = players[get_ball_possessor(ball_xy, players_xy)]['team'] if get_ball_possessor(ball_xy, players_xy) is not None else None
+
+                    generate_new_commentary = False
+                    if last_ball_xy is None or last_possession_team is None:
+                        generate_new_commentary = True
+                    else:
+                        ball_movement = ((ball_xy[0][0] - last_ball_xy[0][0]) ** 2 + (ball_xy[0][1] - last_ball_xy[0][1]) ** 2) ** 0.5
+                        if ball_movement > ball_movement_threshold or possession_team != last_possession_team:
+                            generate_new_commentary = True
+
+                    if generate_new_commentary:
+                        commentary = generate_commentary_ollama(
+                            previous_ball_xy=last_ball_xy,
+                            ball_xy=ball_xy,
+                            players_xy=players_xy,
+                            cluster_labels=cluster_labels,
+                            left_team=left_team,
+                            right_team=right_team,
+                            teams_barycenter=teams_barycenter,
+                            pitch=PitchDimensions()
+                        )
+                        if commentary is not None:
+                            last_commentary = commentary
+                        last_ball_xy = ball_xy
+                        last_possession_team = possession_team
+
+                if last_commentary is not None:
+                    annotated_frame = draw_commentary(
+                        annotated_frame,
+                        last_commentary,
+                        start_xy=(w // 2, int(0.05 * h))
+                    )
 
         cv2.imshow("Visualization", annotated_frame)
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):

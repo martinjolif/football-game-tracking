@@ -12,8 +12,10 @@ def render_pitch_radar(
     keypoint_mask: np.ndarray,
     player_detection_output: Optional[sv.Detections] = None,
     ball_detection_output: Optional[sv.Detections] = None,
-    player_teams: Optional[np.ndarray] = None
-) -> np.ndarray:
+    player_teams: Optional[np.ndarray] = None,
+    return_pitch_positions: bool = False,
+    team_colors_legend: Optional[dict[int, sv.Color]] = None
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     """
         Generates a soccer pitch visualization with player and ball positions overlaid.
         Args:
@@ -22,9 +24,11 @@ def render_pitch_radar(
             player_detection_output (sv.Detections): Player detection results containing anchor coordinates.
             ball_detection_output (sv.Detections): Ball detection results containing anchor coordinates.
             player_teams (np.ndarray): Array of integers specifying the team for each player.
+            return_pitch_positions (bool): If True, also returns the pitch coordinates of players and ball.
+            team_colors_legend (Optional[dict[int, sv.Color]]): Optional dictionary mapping team IDs to colors for legend.
 
         Returns:
-            np.ndarray: Annotated image of the soccer pitch with player and ball positions.
+            np.ndarray, np.ndarray, np.ndarray: Annotated image, player positions on pitch, ball position on pitch.
     """
     pitch_dimensions = PitchDimensions()
     frame_points = pitch_detection_output.xy[0].astype(np.float32)
@@ -67,6 +71,12 @@ def render_pitch_radar(
                     radius=16,
                     pitch=annotated_frame
                 )
+
+            if team_colors_legend is not None:
+                annotated_frame = draw_team_legend_sv(
+                    annotated_frame,
+                    team_colors=team_colors_legend
+                )
         else:
             # Draw all players the same way
             annotated_frame = draw_points_on_pitch(
@@ -78,7 +88,10 @@ def render_pitch_radar(
                 pitch=annotated_frame
             )
 
-    return annotated_frame
+    if not return_pitch_positions:
+        pitch_players_xy = None
+        pitch_ball_xy = None
+    return annotated_frame, pitch_players_xy, pitch_ball_xy
 
 def draw_pitch(
     config: PitchDimensions,
@@ -235,7 +248,95 @@ def draw_points_on_pitch(
 
     return pitch
 
+def draw_team_legend_sv(
+    image: np.ndarray,
+    team_colors: dict[int, sv.Color],
+    y_offset: int = 25
+) -> np.ndarray:
+    """
+    Draws a legend of colored dots + labels near the bottom of the existing pitch image
+    using only supervision annotators.
+    """
+    h, w, _ = image.shape
+
+    # y position just above the bottom edge
+    y = h - y_offset
+
+    # Collect fake detection boxes and labels
+    xyxy = []
+    class_ids = []
+    label_list = []
+    color_list = []
+
+    x_start = 525
+    spacing = 180
+
+    for i, (team_id, color) in enumerate(team_colors.items()):
+        x = x_start + i * spacing
+
+        # Shift bbox to the right so text appears after the dot
+        # The dot will be at x, but the bbox for text positioning is shifted left
+        xyxy.append([x - 20, y, x - 19, y + 1])
+
+        class_ids.append(team_id)
+        label_list.append(f"Team {team_id}")
+        color_list.append(color)
+
+    # Build detections for dots
+    dot_detections = sv.Detections(
+        xyxy=np.array([[x_start + i * spacing, y, x_start + i * spacing + 1, y + 1]
+                       for i in range(len(team_colors))], dtype=float),
+        class_id=np.array(list(team_colors.keys())),
+        confidence=np.ones(len(team_colors)),
+    )
+
+    # Build detections for labels (shifted right)
+    label_detections = sv.Detections(
+        xyxy=np.array(xyxy, dtype=float),
+        class_id=np.array(list(team_colors.keys())),
+        confidence=np.ones(len(team_colors)),
+    )
+
+    # Draw dots at original positions
+    dot_annotator = sv.DotAnnotator(
+        color=sv.ColorPalette(color_list),
+        radius=15,
+        position=sv.Position.CENTER
+    )
+    image = dot_annotator.annotate(
+        scene=image,
+        detections=dot_detections
+    )
+
+    # Draw labels at shifted positions
+    label_annotator = sv.LabelAnnotator(
+        text_color=sv.Color.WHITE,
+        color=sv.Color.from_rgb_tuple((34, 139, 34)),  # Match pitch green color
+        text_scale=0.6,
+        text_thickness=2,
+        text_position=sv.Position.CENTER_LEFT,
+        text_padding=5,
+        border_radius=0
+    )
+    image = label_annotator.annotate(
+        scene=image,
+        detections=label_detections,
+        labels=label_list
+    )
+
+    return image
+
 if __name__ == "__main__":
     config = PitchDimensions()
     pitch = draw_pitch(config)
     sv.plot_image(pitch)
+
+    pitch_with_team_legend = draw_team_legend_sv(
+        pitch,
+        team_colors = {
+                0: sv.Color.RED,  # Team 0
+                1: sv.Color.BLUE,  # Team 1
+                # Add more teams/colors if needed
+            },
+    )
+    sv.plot_image(pitch_with_team_legend)
