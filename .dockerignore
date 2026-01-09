@@ -15,8 +15,9 @@
 .pytest_cache/
 
 # Docker
-docker-compose.yml
-Dockerfile
+docker-compose.gpu.yml
+docker-compose.cpu.yml
+*Dockerfile
 .docker
 .dockerignore
 

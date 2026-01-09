@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/full-app/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./weights:/app/weights
+    environment:
+      - PLAYER_DETECTION_URL=http://player-detection:8000
+      - BALL_DETECTION_URL=http://ball-detection:8001
+      - PITCH_DETECTION_URL=http://pitch-detection:8002
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - player-detection
+      - ball-detection
+      - pitch-detection
+      - ollama
+    networks:
+      - football-net
+
+  # Ollama server
+  ollama:
+    image: ollama/ollama:latest  # Use official image or custom Dockerfile if needed
+    command: [ "serve" ]
+    ports:
+      - "11434:11434"
+    networks:
+      - football-net
+    restart: unless-stopped
+
+  player-detection:
+    build:
+      context: .
+      dockerfile: ./docker/player_detection/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./weights:/app/weights
+    networks:
+      - football-net
+
+  ball-detection:
+    build:
+      context: .
+      dockerfile: ./docker/ball_detection/Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./weights:/app/weights
+    networks:
+      - football-net
+
+  pitch-detection:
+    build:
+      context: .
+      dockerfile: ./docker/pitch_detection/Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./weights:/app/weights
+    networks:
+      - football-net
+
+networks:
+  football-net:

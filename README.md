@@ -195,25 +195,23 @@ curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pi
 ```
 
 ### Build and Run Docker Image
-Build a multi-arch Docker image (ARM64 + AMD64):
+
+Build Docker compose image (CPU version):
 ```
-docker buildx build --platform linux/arm64/v8,linux/amd64 \ 
-    -t <docker-username>/football-game-tracking \
-    -f docker/Dockerfile .
+docker compose -f docker-compose.cpu.yml build
 ```
 Run the container:
 ```
-docker run -p 8000:8000 <docker-username>/football-game-tracking 
+docker compose -f docker-compose.cpu.yml up -d
 ```
-If your image exposes multiple services (ports 8000/8001/8002), you can expose them all:
+or 
 ```
-docker run -p 8000:8000 -p 8001:8001 -p 8002:8002 \ 
-    <docker-username>/football-game-tracking
+docker compose -f docker-compose.gpu.yml up -d --gpus all
 ```
-Call the API:
+
+Open the API in your browser:
 ```
-curl -X POST "http://localhost:8000/player-detection/image" \
-    -F "file=@<path_to_your_image.jpg>"
+http://localhost:8080
 ```
 
 ## Data 
