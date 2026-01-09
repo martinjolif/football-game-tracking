@@ -126,7 +126,7 @@ try:
     last_ball_xy = None
     ball_movement_threshold = 200 # in centimeters on the pitch
     last_possession_team = None
-    left_team, right_team = None, None
+    left_team, right_team, teams_barycenter = None, None, None
 
     if save_video:
         width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -284,7 +284,7 @@ try:
             if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
                 if frame_count == cluster_train_frames + 1:
                     players = assign_teams(players_xy, cluster_labels)
-                    left_team, right_team = get_left_team(players)
+                    left_team, right_team, teams_barycenter = get_left_team(players)
 
                 commentary = None
                 possession_team = None
@@ -303,11 +303,13 @@ try:
 
                     if generate_new_commentary:
                         commentary = generate_commentary_ollama(
+                            previous_ball_xy=last_ball_xy,
                             ball_xy=ball_xy,
                             players_xy=players_xy,
                             cluster_labels=cluster_labels,
                             left_team=left_team,
                             right_team=right_team,
+                            teams_barycenter=teams_barycenter,
                             pitch=PitchDimensions()
                         )
                         if commentary is not None:
