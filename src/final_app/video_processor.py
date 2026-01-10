@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 from sklearn.cluster import KMeans
 from torchvision import transforms
 
-from commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
+from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
@@ -34,7 +34,7 @@ class VideoProcessor:
             enable_team_clustering: bool = True,
             end_frame: int = None,
             cluster_train_frames: int = 50,
-            model_path: str = "../../runs/mlflow/750198089413804961/1385b27186ae46c19ddfc49afea0a75e/artifacts/best_mobilenetv3_small.pth",
+            model_path: str = "weights/team_clustering/hf_weights/mobilenetv3-football-jersey-classification.pth",
             img_size: int = 224,
             cluster_history_length: int = 20,
             ball_movement_threshold: int = 200,
@@ -139,8 +139,10 @@ class VideoProcessor:
 
         # Player detection
         if "http://localhost:8000/player-detection/image" in results:
+            player_results = results.get("http://localhost:8000/player-detection/image", {})
+            player_dets = player_results.get("detections", [])  # <-- default to empty list
             player_detection = detections_from_results(
-                results["http://localhost:8000/player-detection/image"]["detections"],
+                player_dets,
                 detected_class_ids=collect_class_ids(
                     results,
                     endpoint="http://localhost:8000/player-detection/image",
@@ -151,8 +153,10 @@ class VideoProcessor:
 
         # Ball detection
         if "http://localhost:8001/ball-detection/image" in results:
+            ball_results = results.get("http://localhost:8001/ball-detection/image", {})
+            ball_dets = ball_results.get("detections", [])
             ball_detection = detections_from_results(
-                results["http://localhost:8001/ball-detection/image"]["detections"],
+                ball_dets,
                 detected_class_ids=collect_class_ids(
                     results,
                     endpoint="http://localhost:8001/ball-detection/image",
@@ -163,8 +167,9 @@ class VideoProcessor:
 
         # Pitch detection
         if "http://localhost:8002/pitch-detection/image" in results:
+            pitch_results = results.get("http://localhost:8002/pitch-detection/image", None)
             pitch_detection, keypoint_mask = keypoints_from_pose_results(
-                results["http://localhost:8002/pitch-detection/image"],
+                pitch_results,
                 confidence_threshold=0.7,
             )
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None

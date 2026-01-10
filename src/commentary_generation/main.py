@@ -1,6 +1,6 @@
 import requests
 
-from commentary_generation.config import LLM_MODEL, TEMPERATURE, TOP_P
+from src.commentary_generation.config import LLM_MODEL, TEMPERATURE, TOP_P
 from src.commentary_generation.events3 import generate_event
 from src.utils.logger import LOGGER
 
@@ -21,7 +21,6 @@ def generate_commentary_ollama(previous_ball_xy, ball_xy, players_xy, cluster_la
     else:
         LOGGER.debug("Generating commentary with OLLAMA LLM model: %s", model)
         LOGGER.debug("------Prompt to the LLM------\n%s", prompt)
-        print(prompt)
         payload = {
             "model": model,
             "prompt": prompt,
@@ -34,5 +33,4 @@ def generate_commentary_ollama(previous_ball_xy, ball_xy, players_xy, cluster_la
 
         response = requests.post(url, json=payload)
         response.raise_for_status()
-        print(response.json()["response"])
         return response.json()["response"]

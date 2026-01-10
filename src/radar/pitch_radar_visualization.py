@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 import supervision as sv
 
-from radar.homography import Homography
-from radar.pitch_dimensions import PitchDimensions
+from src.radar.homography import Homography
+from src.radar.pitch_dimensions import PitchDimensions
 
 def render_pitch_radar(
     pitch_detection_output: sv.KeyPoints,
@@ -340,3 +340,9 @@ if __name__ == "__main__":
             },
     )
     sv.plot_image(pitch_with_team_legend)
+
+    pitch_with_missing_team_legend = draw_team_legend_sv(
+        pitch,
+        team_colors=None,
+    )
+    sv.plot_image(pitch_with_missing_team_legend)
