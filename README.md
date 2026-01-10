@@ -173,6 +173,7 @@ We can also track the players with ByteTrack to have smoother trajectories and g
 The idea is to use the insights inferred from the video (players position, ball position) to generate game commentaries with LLMs.
 To do so, we create events from the players and ball positions (e.g., "The ball is located in the {ball_zone}" or "Team {possessing_team} is in control of the ball."), then we use these events as input to the LLM to generate commentaries.
 
+https://github.com/user-attachments/assets/3ff1340e-cdc8-4c53-9c19-d9b9c3ae8319
 
 ### Run tests
 ```
