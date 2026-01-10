@@ -1,19 +1,21 @@
+import os
+from collections import defaultdict, deque
+from pathlib import Path
+
 import cv2
+import supervision as sv
 import torch
 import umap
-import supervision as sv
 from PIL import Image
-from pathlib import Path
-from collections import defaultdict, deque
 from sklearn.cluster import KMeans
 from torchvision import transforms
 
-from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
 from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
+from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.commentary_generation.main import generate_commentary_ollama
 from src.commentary_generation.plot import draw_commentary
 from src.radar.pitch_dimensions import PitchDimensions
@@ -21,7 +23,6 @@ from src.radar.pitch_radar_visualization import render_pitch_radar
 from src.team_clustering.clustering_model import ClusteringModel
 from src.team_clustering.utils import load_model
 from src.utils.logger import LOGGER
-
 
 class VideoProcessor:
     def __init__(
@@ -118,15 +119,15 @@ class VideoProcessor:
 
         # Player detection
         if self.enable_tracking or self.enable_team_clustering or self.enable_radar or self.enable_commentary:
-            endpoints.append("http://localhost:8000/player-detection/image")
+            endpoints.append(os.getenv("PLAYER_DETECTION_URL", "http://localhost:8000/player-detection/image"))
 
         # Ball detection
         if self.enable_radar or self.enable_commentary:
-            endpoints.append("http://localhost:8001/ball-detection/image")
+            endpoints.append(os.getenv("BALL_DETECTION_URL", "http://localhost:8001/ball-detection/image"))
 
         # Pitch detection
         if self.enable_radar or self.enable_commentary or self.enable_team_clustering:
-            endpoints.append("http://localhost:8002/pitch-detection/image")
+            endpoints.append(os.getenv("PITCH_DETECTION_URL", "http://localhost:8002/pitch-detection/image"))
 
         return call_image_apis(endpoints=endpoints, image_bytes=frame_bytes)
 
@@ -137,39 +138,38 @@ class VideoProcessor:
         pitch_detection = None
         keypoint_mask = None
 
+        player_url = os.getenv("PLAYER_DETECTION_URL", "http://localhost:8000/player-detection/image")
+        ball_url = os.getenv("BALL_DETECTION_URL", "http://localhost:8001/ball-detection/image")
+        pitch_url = os.getenv("PITCH_DETECTION_URL", "http://localhost:8002/pitch-detection/image")
+
         # Player detection
-        if "http://localhost:8000/player-detection/image" in results:
-            player_results = results.get("http://localhost:8000/player-detection/image", {})
-            player_dets = player_results.get("detections", [])  # <-- default to empty list
+        if player_url in results:
             player_detection = detections_from_results(
-                player_dets,
+                results[player_url]["detections"],
                 detected_class_ids=collect_class_ids(
                     results,
-                    endpoint="http://localhost:8000/player-detection/image",
+                    endpoint=player_url,
                     mapping_key="mapping_class",
                     roles=["player", "goalkeeper"],
                 ),
             )
 
         # Ball detection
-        if "http://localhost:8001/ball-detection/image" in results:
-            ball_results = results.get("http://localhost:8001/ball-detection/image", {})
-            ball_dets = ball_results.get("detections", [])
+        if ball_url in results:
             ball_detection = detections_from_results(
-                ball_dets,
+                results[ball_url]["detections"],
                 detected_class_ids=collect_class_ids(
                     results,
-                    endpoint="http://localhost:8001/ball-detection/image",
+                    endpoint=ball_url,
                     mapping_key="mapping_class",
                     roles=["ball"],
                 ),
             )
 
         # Pitch detection
-        if "http://localhost:8002/pitch-detection/image" in results:
-            pitch_results = results.get("http://localhost:8002/pitch-detection/image", None)
+        if pitch_url in results:
             pitch_detection, keypoint_mask = keypoints_from_pose_results(
-                pitch_results,
+                results[pitch_url],
                 confidence_threshold=0.7,
             )
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None
@@ -219,13 +219,13 @@ class VideoProcessor:
         h, w, _ = frame.shape
 
         # Render tracking
-        if self.enable_tracking and player_detection:
+        if False and self.enable_tracking and player_detection:
             annotated_frame = self.box_annotator.annotate(annotated_frame, player_detection)
             annotated_frame = visualize_frame(annotated_frame, player_detection, tracker=self.player_tracker,
                                               show_trace=False)
 
         # Render team clustering
-        if self.enable_team_clustering and player_detection and self.cluster_labels is not None:
+        if False and self.enable_team_clustering and player_detection and self.cluster_labels is not None:
             team_detections = sv.Detections(
                 xyxy=player_detection.xyxy,
                 class_id=self.cluster_labels,

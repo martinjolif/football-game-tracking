@@ -1,3 +1,5 @@
+import os
+
 import requests
 
 from src.commentary_generation.config import LLM_MODEL, TEMPERATURE, TOP_P
@@ -14,7 +16,7 @@ def generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_
         return None
 
 def generate_commentary_ollama(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch, model=LLM_MODEL, temperature=TEMPERATURE, top_p=TOP_P):
-    url = "http://localhost:11434/api/generate"
+    url = os.getenv("OLLAMA_URL" , "http://localhost:11434/api/generate")
     prompt = generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch)
     if prompt is None:
         return None

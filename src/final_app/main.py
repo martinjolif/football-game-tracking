@@ -144,7 +144,7 @@ def process_video(
         cluster_train_frames: int,
 ):
     """Background task to process video"""
-    from video_processor import VideoProcessor
+    from src.final_app.video_processor import VideoProcessor
 
     try:
         job_status[job_id]["status"] = "processing"

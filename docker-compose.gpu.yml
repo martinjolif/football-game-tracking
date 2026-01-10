@@ -6,17 +6,20 @@ services:
     build:
       context: .
       dockerfile: docker/full-app/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: mjolif/football-tracking-app:0.1.0  # Replace with your docker hub username/repo if needed
     ports:
       - "8080:8080"
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
-      - ./weights:/app/weights
     environment:
-      - PLAYER_DETECTION_URL=http://player-detection:8000
-      - BALL_DETECTION_URL=http://ball-detection:8001
-      - PITCH_DETECTION_URL=http://pitch-detection:8002
-      - OLLAMA_URL=http://ollama:11434
+      - PLAYER_DETECTION_URL=http://player-detection:8000/player-detection/image
+      - BALL_DETECTION_URL=http://ball-detection:8001/ball-detection/image
+      - PITCH_DETECTION_URL=http://pitch-detection:8002/pitch-detection/image
+      - OLLAMA_URL=http://ollama:11434/api/generate
     depends_on:
       - player-detection
       - ball-detection
@@ -27,10 +30,19 @@ services:
 
   # Ollama server
   ollama:
-    image: ollama/ollama:latest  # Use official image or custom Dockerfile if needed
-    command: [ "serve" ]
+    build:
+      context: .
+      dockerfile: docker/ollama/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      args:
+        OLLAMA_MODEL: smollm2:1.7b
     ports:
       - "11434:11434"
+    image: mjolif/football-tracking-ollama:0.1.0  # Replace with your docker hub username/repo if needed
+    volumes:
+      - ollama-data:/root/.ollama
     networks:
       - football-net
     restart: unless-stopped
@@ -40,57 +52,42 @@ services:
     build:
       context: .
       dockerfile: ./docker/player_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: mjolif/football-tracking-player-detection:0.1.0  # Replace with your docker hub username/repo if needed
     ports:
       - "8000:8000"
-    volumes:
-      - ./weights:/app/weights
     networks:
       - football-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   # Ball detection service
   ball-detection:
     build:
       context: .
       dockerfile: ./docker/ball_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: mjolif/football-tracking-ball-detection:0.1.0  # Replace with your docker hub username/repo if needed
     ports:
       - "8001:8001"
-    volumes:
-      - ./weights:/app/weights
     networks:
       - football-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   # Pitch detection service
   pitch-detection:
     build:
       context: .
       dockerfile: ./docker/pitch_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: mjolif/football-tracking-pitch-detection:0.1.0  # Replace with your docker hub username/repo if needed
     ports:
       - "8002:8002"
-    volumes:
-      - ./weights:/app/weights
     networks:
       - football-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
 networks:
   football-net:
@@ -99,4 +96,4 @@ networks:
 volumes:
   uploads:
   outputs:
-  models:
+  ollama-data:
