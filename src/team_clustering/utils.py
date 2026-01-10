@@ -26,7 +26,7 @@ def load_model(model_path: Path, device: torch.device) -> tuple[nn.Module, dict 
         Mapping of label strings to class indices, or None if unavailable.
     """
     # build model skeleton and adjust final layer
-    model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
+    model = mobilenet_v3_small()
     # determine num classes from saved model or mapping
     state = torch.load(model_path, map_location="cpu")
     sd = state.get("model_state_dict", state)
