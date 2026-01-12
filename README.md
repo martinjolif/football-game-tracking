@@ -246,6 +246,7 @@ mySoccerNetDownloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"], split=["
 
 Pull the images:
 ```
+docker desktop start
 docker compose -f docker-compose.gpu.yml pull
 ```
 Run the container:
