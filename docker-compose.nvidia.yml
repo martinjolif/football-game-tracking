@@ -38,12 +38,19 @@ services:
         OLLAMA_MODEL: smollm2:1.7b
     ports:
       - "11434:11434"
-    image: mjolif/football-tracking-ollama:0.1.0  # Replace with your docker hub username/repo if needed
+    image: mjolif/football-tracking-ollama:${TAG} # Replace with your docker hub username/repo if needed
     volumes:
       - ollama-data:/root/.ollama
     networks:
       - football-net
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
 
   # Player detection service
   player-detection:
@@ -53,11 +60,18 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: mjolif/football-tracking-player-detection:0.1.0  # Replace with your docker hub username/repo if needed
+    image: ${DOCKER_USERNAME}/football-tracking-player-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8000:8000"
     networks:
       - football-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
 
   # Ball detection service
   ball-detection:
@@ -67,11 +81,18 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: mjolif/football-tracking-ball-detection:0.1.0  # Replace with your docker hub username/repo if needed
+    image: ${DOCKER_USERNAME}/football-tracking-ball-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8001:8001"
     networks:
       - football-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
 
   # Pitch detection service
   pitch-detection:
@@ -81,11 +102,18 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: mjolif/football-tracking-pitch-detection:0.1.0  # Replace with your docker hub username/repo if needed
+    image: ${DOCKER_USERNAME}/football-tracking-pitch-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8002:8002"
     networks:
       - football-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
 
 networks:
   football-net:

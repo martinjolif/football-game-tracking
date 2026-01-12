@@ -15,7 +15,7 @@
 .pytest_cache/
 
 # Docker
-docker-compose.gpu.yml
+docker-compose.nvidia.yml
 docker-compose.cpu.yml
 *Dockerfile
 .docker
