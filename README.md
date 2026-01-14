@@ -207,13 +207,13 @@ curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pi
 
 ### Build and Run Docker Image
 
-Build Docker compose image:
+Build Docker compose image (with GPU support):
 ```
-docker compose -f docker-compose.gpu.yml build
+docker compose -f docker-compose.nvidia.yml build
 ```
-Run the container:
+Run the container (the GPU backend is not supported on MacOS when running via Docker):
 ```
-docker compose -f docker-compose.gpu.yml up -d
+docker compose -f docker-compose.nvidia.yml up -d
 ```
 
 Open the final app in your browser:
@@ -222,13 +222,13 @@ http://localhost:8080
 ```
 See logs:
 ```
-docker compose -f docker-compose.gpu.yml logs -f
+docker compose -f docker-compose.nvidia.yml logs -f
 ```
 
 Push to Docker Hub:
 ```
 docker login
-docker compose -f docker-compose.gpu.yml push
+docker compose -f docker-compose.nvidia.yml push
 ```
 
 
@@ -244,14 +244,16 @@ mySoccerNetDownloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"], split=["
 
 ## Run the Application via Docker
 
+The GPU backend is not supported on MacOS when running via Docker.
+
 Pull the images:
 ```
 docker desktop start
-docker compose -f docker-compose.gpu.yml pull
+docker compose -f docker-compose.nvidia.yml pull
 ```
 Run the container:
 ```
-docker compose -f docker-compose.gpu.yml up -d
+docker compose -f docker-compose.nvidia.yml up -d
 ```
 
 Use the application:

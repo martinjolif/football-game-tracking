@@ -7,7 +7,7 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: mjolif/football-tracking-app:0.1.0  # Replace with your docker hub username/repo if needed
+    image: ${DOCKER_USERNAME}/football-tracking-app:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8080:8080"
     volumes:
@@ -38,7 +38,7 @@ services:
         OLLAMA_MODEL: smollm2:1.7b
     ports:
       - "11434:11434"
-    image: mjolif/football-tracking-ollama:${TAG} # Replace with your docker hub username/repo if needed
+    image: mjolif/football-tracking-ollama:${TAG} # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     volumes:
       - ollama-data:/root/.ollama
     networks:
