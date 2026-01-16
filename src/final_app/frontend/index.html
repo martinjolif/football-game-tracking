@@ -320,7 +320,10 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080';
+        // Auto-detect API base: if running from PyCharm/IDE server (port 63342), use localhost:8080
+        const API_BASE = (window.location.port === '63342')
+            ? 'http://localhost:8080'
+            : window.location.origin;
         let selectedFile = null;
         let currentJobId = null;
 
