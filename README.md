@@ -230,8 +230,15 @@ Push to Docker Hub:
 docker login
 docker compose -f docker-compose.nvidia.yml push
 ```
+## Frontend Application
 
+(Still in progress)
 
+You can upload a football game video and see the player and ball detections overlaid on the video. You can also see the 2D pitch radar with the players and ball positions on the pitch as well as the generated commentaries.
+
+<img src="figs/app.png" alt="Frontend Application" width="600"/>
+
+Choose the analysis you want to view. ``Clustering training frames`` refers to the number of frames used to train the clustering algorithm, which determines a player's team based on their jersey color.
 ## Data 
 If you want to test the full pipeline with a real football game video as input, you can download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
 ```
