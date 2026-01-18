@@ -54,22 +54,22 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-ball-detection:${{ env.IMAGE_TAG }}
       - name: Set up Docker Buildx (player detection)
         uses: docker/setup-buildx-action@v3
-      - name: Build & Push Docker Image (player detection)
-        uses: docker/build-push-action@v6
-        with:
-          file: ./docker/player_detection/Dockerfile
-          platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
-          push: false # Set to true, to push the image to Docker Hub
-          tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-player-detection:${{ env.IMAGE_TAG }}
-      - name: Set up Docker Buildx (pitch detection)
-        uses: docker/setup-buildx-action@v3
-      - name: Build & Push Docker Image (pitch detection)
-        uses: docker/build-push-action@v6
-        with:
-          file: ./docker/pitch_detection/Dockerfile
-          platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
-          push: false # Set to true, to push the image to Docker Hub
-          tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-pitch-detection:${{ env.IMAGE_TAG }}
+      # - name: Build & Push Docker Image (player detection)
+      #  uses: docker/build-push-action@v6
+      #   with:
+      #     file: ./docker/player_detection/Dockerfile
+      #    platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
+      #     push: false # Set to true, to push the image to Docker Hub
+      #     tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-player-detection:${{ env.IMAGE_TAG }}
+      # - name: Set up Docker Buildx (pitch detection)
+      #   uses: docker/setup-buildx-action@v3
+      # - name: Build & Push Docker Image (pitch detection)
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     file: ./docker/pitch_detection/Dockerfile
+      #     platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
+      #     push: false # Set to true, to push the image to Docker Hub
+      #     tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-pitch-detection:${{ env.IMAGE_TAG }}
       - name: Set up Docker Buildx (ollama)
         uses: docker/setup-buildx-action@v3
       - name: Build & Push Docker Image (ollama)
