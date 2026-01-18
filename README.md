@@ -46,7 +46,7 @@ For pose estimation tasks (pitch detection), the evaluation includes both boundi
 
 Download training/validation/test data:
 ```
-hf download martinjolif/football-player-detection --repo-type dataset --local-dir training/player_detection/
+uv run hf download martinjolif/football-player-detection --repo-type dataset --local-dir training/player_detection/
 ```
 
 From the ``football-game-tracking`` folder, run the following command:
@@ -69,7 +69,7 @@ https://github.com/user-attachments/assets/59e4bddd-440b-4ca3-bed5-ff4c64162094
 
 Download training/validation/test data:
 ```
-hf download martinjolif/football-ball-detection --repo-type dataset --local-dir training/ball_detection/
+uv run hf download martinjolif/football-ball-detection --repo-type dataset --local-dir training/ball_detection/
 ```
 
 From the ``football-game-tracking`` folder, run the following command:
@@ -92,7 +92,7 @@ https://github.com/user-attachments/assets/03f3074f-04f3-457c-9a24-c3997b2f81d0
 
 Download training/validation/test data:
 ```
-hf download martinjolif/football-pitch-detection --repo-type dataset --local-dir training/pitch_detection/
+uv run hf download martinjolif/football-pitch-detection --repo-type dataset --local-dir training/pitch_detection/
 ```
 
 From the ``football-game-tracking`` folder, run the following command to train the model:
@@ -154,8 +154,10 @@ https://github.com/user-attachments/assets/4c15c874-f247-4932-91cf-4414e414a2f8
 
 Download model checkpoints from Hugging Face:
 ```
-hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
-hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
+uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
+uv run hf download martinjolif/yolo-football-ball-detection --local-dir weights/ball_detection/hf_weights
+uv run hf download martinjolif/yolo-football-pitch-detection --local-dir weights/pitch_detection/hf_weights
+uv run hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir weights/team_clustering/hf_weights
 ```
 
 ### 2D Pitch Radar
@@ -163,6 +165,15 @@ hf download martinjolif/mobilenetv3-football-jersey-classification --local-dir w
 The idea is from the players, ball and pitch keypoints detection to create a 2D pitch radar that show us the position of the players and the ball in the pitch. We use homography to compute the position of the players and the ball on the pitch and label them with their jersey color cluster.
 
 https://github.com/user-attachments/assets/aa09cd03-a4df-434f-93f6-7b57c800d5ea
+
+We can also track the players with ByteTrack to have smoother trajectories and get an id for each player. This is also useful for team clustering as we can aggregate the jersey color cluster for each player over time to have better clusters and avoid some misclassifications.
+
+### Commentary Generation with LLMs
+
+The idea is to use the insights inferred from the video (players position, ball position) to generate game commentaries with LLMs.
+To do so, we create events from the players and ball positions (e.g., "The ball is located in the {ball_zone}" or "Team {possessing_team} is in control of the ball."), then we use these events as input to the LLM to generate commentaries.
+
+https://github.com/user-attachments/assets/3ff1340e-cdc8-4c53-9c19-d9b9c3ae8319
 
 ### Run tests
 ```
@@ -195,27 +206,39 @@ curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pi
 ```
 
 ### Build and Run Docker Image
-Build a multi-arch Docker image (ARM64 + AMD64):
+
+Build Docker compose image (with GPU support):
 ```
-docker buildx build --platform linux/arm64/v8,linux/amd64 \ 
-    -t <docker-username>/football-game-tracking \
-    -f docker/Dockerfile .
+docker compose -f docker-compose.nvidia.yml build
 ```
-Run the container:
+Run the container (the GPU backend is not supported on MacOS when running via Docker):
 ```
-docker run -p 8000:8000 <docker-username>/football-game-tracking 
-```
-If your image exposes multiple services (ports 8000/8001/8002), you can expose them all:
-```
-docker run -p 8000:8000 -p 8001:8001 -p 8002:8002 \ 
-    <docker-username>/football-game-tracking
-```
-Call the API:
-```
-curl -X POST "http://localhost:8000/player-detection/image" \
-    -F "file=@<path_to_your_image.jpg>"
+docker compose -f docker-compose.nvidia.yml up -d
 ```
 
+Open the final app in your browser:
+```
+http://localhost:8080
+```
+See logs:
+```
+docker compose -f docker-compose.nvidia.yml logs -f
+```
+
+Push to Docker Hub:
+```
+docker login
+docker compose -f docker-compose.nvidia.yml push
+```
+## Frontend Application
+
+(Still in progress)
+
+You can upload a football game video and see the player and ball detections overlaid on the video. You can also see the 2D pitch radar with the players and ball positions on the pitch as well as the generated commentaries.
+
+<img src="figs/app.png" alt="Frontend Application" width="600"/>
+
+Choose the analysis you want to view. ``Clustering training frames`` refers to the number of frames used to train the clustering algorithm, which determines a player's team based on their jersey color.
 ## Data 
 If you want to test the full pipeline with a real football game video as input, you can download one of the ``Broadcast Videos`` from the ``SoccerNet`` dataset. You can download the videos from the following link: https://www.soccer-net.org/data by filling the NDA form.
 ```
@@ -228,18 +251,31 @@ mySoccerNetDownloader.downloadGames(files=["1_720p.mkv", "2_720p.mkv"], split=["
 
 ## Run the Application via Docker
 
-(The final app is still not available)
+The GPU backend is not supported on MacOS when running via Docker.
 
-Pull the image:
+Pull the images:
 ```
-docker pull mjolif/football-game-tracking
+docker desktop start
+docker compose -f docker-compose.nvidia.yml pull
 ```
 Run the container:
 ```
-docker run -p 8000:8000 mjolif/football-game-tracking 
+docker compose -f docker-compose.nvidia.yml up -d
 ```
+
+Use the application:
+```
+http://<ip-address>:8080
+```
+
 Call the API:
 ```
 curl -X POST "http://<ip-address>:8000/player-detection/image" \
+    -F "file=@<path_to_your_image.jpg>"
+    
+curl -X POST "http://<ip-address>:8001/ball-detection/image" \
+    -F "file=@<path_to_your_image.jpg>"
+
+curl -X POST "http://<ip-address>:8002/pitch-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
 ```

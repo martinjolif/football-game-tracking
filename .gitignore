@@ -213,3 +213,16 @@ data/
 models/
 england_epl/
 weights/
+outputs/
+uploads/
+*.pt
+*.mp4
+
+training/ball_detection/.gitattributes
+training/ball_detection/README.md
+
+training/player_detection/.gitattributes
+training/player_detection/README.md
+
+training/pitch_detection/.gitattributes
+training/pitch_detection/README.md

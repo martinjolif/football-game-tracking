@@ -1,0 +1,97 @@
+services:
+  # Main FastAPI application
+  app:
+    build:
+      context: .
+      dockerfile: docker/full-app/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: ${DOCKER_USERNAME}/football-game-tracking-app-cpu:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    environment:
+      - PLAYER_DETECTION_URL=http://player-detection:8000/player-detection/image
+      - BALL_DETECTION_URL=http://ball-detection:8001/ball-detection/image
+      - PITCH_DETECTION_URL=http://pitch-detection:8002/pitch-detection/image
+      - OLLAMA_URL=http://ollama:11434/api/generate
+    depends_on:
+      - player-detection
+      - ball-detection
+      - pitch-detection
+      - ollama
+    networks:
+      - football-net
+
+  # Ollama server
+  ollama:
+    build:
+      context: .
+      dockerfile: docker/ollama/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      args:
+        OLLAMA_MODEL: smollm2:1.7b
+    ports:
+      - "11434:11434"
+    image: ${DOCKER_USERNAME}/football-game-tracking-ollama-cpu:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - football-net
+    restart: unless-stopped
+
+  # Player detection service
+  player-detection:
+    build:
+      context: .
+      dockerfile: ./docker/player_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: ${DOCKER_USERNAME}/football-game-tracking-player-detection-cpu:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    ports:
+      - "8000:8000"
+    networks:
+      - football-net
+
+  # Ball detection service
+  ball-detection:
+    build:
+      context: .
+      dockerfile: ./docker/ball_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: ${DOCKER_USERNAME}/football-game-tracking-ball-detection-cpu:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    ports:
+      - "8001:8001"
+    networks:
+      - football-net
+
+  # Pitch detection service
+  pitch-detection:
+    build:
+      context: .
+      dockerfile: ./docker/pitch_detection/Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: ${DOCKER_USERNAME}/football-game-tracking-pitch-detection-cpu:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    ports:
+      - "8002:8002"
+    networks:
+      - football-net
+
+networks:
+  football-net:
+    driver: bridge
+
+volumes:
+  uploads:
+  outputs:
+  ollama-data:

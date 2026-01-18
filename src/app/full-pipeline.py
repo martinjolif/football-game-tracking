@@ -272,8 +272,8 @@ try:
                 player_detection,
                 ball_detection,
                 player_teams = cluster_labels if FeatureMode.TEAM in FEATURE_MODES else None,
-                return_pitch_positions = True if FeatureMode.COMMENTARY in FEATURE_MODES else False,
-                team_colors_legend = {left_team: sv.Color.BLUE, right_team: sv.Color.RED} if frame_count > cluster_train_frames + 1 else None
+                return_pitch_positions = True if FeatureMode.COMMENTARY in FEATURE_MODES or left_team is None else False,
+                team_colors_legend = {left_team: sv.Color.BLUE, right_team: sv.Color.RED} if frame_count > cluster_train_frames + 1 and left_team is not None and right_team is not None else None
             )
             h, w, _ = frame.shape
             radar = sv.resize_image(radar, (w // 2, h // 2))
@@ -281,8 +281,13 @@ try:
             rect = sv.Rect(x=w // 2 - radar_w // 2, y=h - radar_h, width=radar_w, height=radar_h)
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
 
-            if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
+            if train_labels_ready and VizMode.RADAR in VIZ_MODES:
                 if frame_count == cluster_train_frames + 1:
+                    players = assign_teams(players_xy, cluster_labels)
+                    left_team, right_team, teams_barycenter = get_left_team(players)
+
+            if train_labels_ready and VizMode.COMMENTARY in VIZ_MODES:
+                if frame_count >= cluster_train_frames + 1:
                     players = assign_teams(players_xy, cluster_labels)
                     left_team, right_team, teams_barycenter = get_left_team(players)
 
@@ -324,6 +329,7 @@ try:
                         start_xy=(w // 2, int(0.05 * h))
                     )
 
+        LOGGER.debug("Rendering pitch radar (Frame %d)", frame_count)
         cv2.imshow("Visualization", annotated_frame)
         if cv2.waitKey(int(seconds_per_frame * 1000)) & 0xFF == ord('q'):
             break
