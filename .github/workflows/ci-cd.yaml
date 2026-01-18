@@ -79,15 +79,15 @@ jobs:
           platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
           push: false # Set to true, to push the image to Docker Hub
           tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-ollama:${{ env.IMAGE_TAG }}
-      - name: Set up Docker Buildx (full app)
-        uses: docker/setup-buildx-action@v3
-      - name: Build & Push Docker Image (full app)
-        uses: docker/build-push-action@v6
-        with:
-          file: ./docker/full-app/Dockerfile
-          platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
-          push: false # Set to true, to push the image to Docker Hub
-          tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-app:${{ env.IMAGE_TAG }}
+      # - name: Set up Docker Buildx (full app)
+      #   uses: docker/setup-buildx-action@v3
+      # - name: Build & Push Docker Image (full app)
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     file: ./docker/full-app/Dockerfile
+      #     platforms: linux/amd64 # Build for amd64 architecture only to avoid reaching time limits with GitHub Actions
+      #     push: false # Set to true, to push the image to Docker Hub
+      #     tags: ${{ secrets.DOCKER_USERNAME }}/football-game-tracking-app:${{ env.IMAGE_TAG }}
 
 
   # deploy:
