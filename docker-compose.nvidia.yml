@@ -7,7 +7,7 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USERNAME}/football-tracking-app:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    image: ${DOCKER_USERNAME}/football-game-tracking-app:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8080:8080"
     volumes:
@@ -38,7 +38,7 @@ services:
         OLLAMA_MODEL: smollm2:1.7b
     ports:
       - "11434:11434"
-    image: mjolif/football-tracking-ollama:${TAG} # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    image: ${DOCKER_USERNAME}/football-game-tracking-ollama:${TAG} # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     volumes:
       - ollama-data:/root/.ollama
     networks:
@@ -60,7 +60,7 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USERNAME}/football-tracking-player-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    image: ${DOCKER_USERNAME}/football-game-tracking-player-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8000:8000"
     networks:
@@ -81,7 +81,7 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USERNAME}/football-tracking-ball-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    image: ${DOCKER_USERNAME}/football-game-tracking-ball-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8001:8001"
     networks:
@@ -102,7 +102,7 @@ services:
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USERNAME}/football-tracking-pitch-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
+    image: ${DOCKER_USERNAME}/football-game-tracking-pitch-detection:${TAG}  # Replace with your docker hub username/repo (ex: export DOCKER_USERNAME=mjolif)
     ports:
       - "8002:8002"
     networks:

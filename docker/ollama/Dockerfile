@@ -1,4 +1,4 @@
-FROM ollama/ollama:latest
+FROM ollama/ollama:0.13.5
 
 ARG OLLAMA_MODEL
 
