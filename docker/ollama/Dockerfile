@@ -1,6 +1,6 @@
 FROM ollama/ollama:0.13.5
 
-ARG OLLAMA_MODEL="smollm:1.7b"
+ARG OLLAMA_MODEL="smollm2:135m"
 
 # Pull the model during build
 RUN ollama serve & \
