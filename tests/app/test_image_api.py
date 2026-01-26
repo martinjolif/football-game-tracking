@@ -4,11 +4,11 @@ from fastapi import HTTPException
 from app.image_api import call_image_api, call_image_apis
 
 def test_call_image_api():
-    #raises error when both image_bytes and image_path are none
+    # raises error when both image_bytes and image_path are none
     with pytest.raises(ValueError, match="Either image_bytes or image_path must be provided."):
         call_image_api("http://localhost:8000/test", None, None)
 
-    #calls api with image bytes
+    # calls api with image bytes
     with patch('app.image_api.requests.post') as mock_post:
         mock_response = Mock()
         mock_response.status_code = 200
@@ -19,7 +19,7 @@ def test_call_image_api():
         assert result == {"result": "success"}
         mock_post.assert_called_once()
 
-    #calls api with image path
+    # calls api with image path
     with patch('app.image_api.requests.post') as mock_post, \
          patch('builtins.open', mock_open(read_data=b"file_content")):
         mock_response = Mock()
@@ -31,7 +31,7 @@ def test_call_image_api():
         assert result == {"result": "success"}
         mock_post.assert_called_once()
 
-    #raises http exception on non 200 status
+    # raises http exception on non 200 status
     with patch('app.image_api.requests.post') as mock_post:
         mock_response = Mock()
         mock_response.status_code = 404
@@ -42,7 +42,7 @@ def test_call_image_api():
             call_image_api("http://localhost:8000/test", None, b"image_data")
         assert exc_info.value.status_code == 404
 
-    #returns text when json decode fails
+    # returns text when json decode fails
     with patch('app.image_api.requests.post') as mock_post:
         import requests
         mock_response = Mock()
@@ -54,7 +54,7 @@ def test_call_image_api():
         result = call_image_api("http://localhost:8000/test", None, b"image_data")
         assert result == "plain text response"
 
-    #handles timeout error
+    # handles timeout error
     with patch('app.image_api.requests.post') as mock_post:
         import requests
         mock_post.side_effect = requests.exceptions.Timeout("Timeout")
@@ -63,7 +63,7 @@ def test_call_image_api():
             call_image_api("http://localhost:8000/test", None, b"image_data")
         assert exc_info.value.status_code == 504
 
-    #handles connection error
+    # handles connection error
     with patch('app.image_api.requests.post') as mock_post:
         import requests
         mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
@@ -74,11 +74,11 @@ def test_call_image_api():
 
 
 def test_call_image_apis():
-    #raises error when both image_bytes and image_path are none
+    # raises error when both image_bytes and image_path are none
     with pytest.raises(ValueError, match="Either image_bytes or image_path must be provided."):
         call_image_apis(None, None, None)
 
-    #calls multiple endpoints with default endpoints
+    # calls multiple endpoints with default endpoints
     with patch('app.image_api.call_image_api') as mock_call:
         mock_call.return_value = {"result": "success"}
         
@@ -88,7 +88,7 @@ def test_call_image_apis():
         assert "http://localhost:8001/ball-detection/image" in results
         assert "http://localhost:8002/pitch-detection/image" in results
 
-    #calls custom endpoints
+    # calls custom endpoints
     with patch('app.image_api.call_image_api') as mock_call:
         mock_call.return_value = {"result": "success"}
         
@@ -98,7 +98,7 @@ def test_call_image_apis():
         assert "http://localhost:9000/test1" in results
         assert "http://localhost:9001/test2" in results
 
-    #handles errors from individual endpoints
+    # handles errors from individual endpoints
     with patch('app.image_api.call_image_api') as mock_call:
         def side_effect(endpoint, path, bytes, timeout):
             if "8000" in endpoint:

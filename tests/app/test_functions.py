@@ -4,15 +4,15 @@ from unittest.mock import Mock, patch
 from app.functions import process_image
 
 def test_process_image():
-    #raises error when multiple flags are true
+    # raises error when multiple flags are true
     with pytest.raises(ValueError, match="Only one debug or visualization flag can be True at a time."):
         process_image("test.jpg", player_tracking_viz=True, pitch_radar_viz=True)
 
-    #raises error when image file not found
+    # raises error when image file not found
     with pytest.raises(FileNotFoundError, match="Cannot load image"):
         process_image("nonexistent.jpg")
 
-    #processes image with debug player detection
+    # processes image with debug player detection
     with patch('app.functions.cv2.imread') as mock_imread, \
          patch('app.functions.cv2.imencode') as mock_imencode, \
          patch('app.functions.call_image_apis') as mock_apis, \
@@ -44,7 +44,7 @@ def test_process_image():
         assert result is not None
         mock_render.assert_called_once()
 
-    #processes image with debug all
+    # processes image with debug all
     with patch('app.functions.cv2.imread') as mock_imread, \
          patch('app.functions.cv2.imencode') as mock_imencode, \
          patch('app.functions.call_image_apis') as mock_apis, \
@@ -75,7 +75,7 @@ def test_process_image():
         assert result is not None
         mock_render.assert_called_once()
 
-    #processes image with player tracking viz
+    # processes image with player tracking viz
     with patch('app.functions.cv2.imread') as mock_imread, \
          patch('app.functions.cv2.imencode') as mock_imencode, \
          patch('app.functions.call_image_apis') as mock_apis, \
@@ -110,7 +110,7 @@ def test_process_image():
         mock_viz.assert_called_once()
         mock_tracker_instance.update_with_detections.assert_called_once()
 
-    #processes image with pitch radar viz
+    # processes image with pitch radar viz
     with patch('app.functions.cv2.imread') as mock_imread, \
          patch('app.functions.cv2.imencode') as mock_imencode, \
          patch('app.functions.call_image_apis') as mock_apis, \

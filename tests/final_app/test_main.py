@@ -7,7 +7,7 @@ from src.final_app.main import app, job_status
 client = TestClient(app)
 
 def test_serve_frontend():
-    #returns frontend when index html exists
+    # returns frontend when index html exists
     with patch('src.final_app.main.FRONTEND_DIR') as mock_dir:
         mock_index = MagicMock()
         mock_index.exists.return_value = True
@@ -18,7 +18,7 @@ def test_serve_frontend():
         assert response.status_code in [200, 404]
 
 def test_upload_video():
-    #uploads video and starts processing
+    # uploads video and starts processing
     with patch('src.final_app.main.shutil') as mock_shutil, \
          patch('src.final_app.main.process_video') as mock_process:
         # Create a mock file
@@ -47,7 +47,7 @@ def test_upload_video():
             del job_status[data["job_id"]]
 
 def test_get_status():
-    #returns status for existing job
+    # returns status for existing job
     job_status["test-job-id"] = {
         "status": "processing",
         "progress": 50,
@@ -60,25 +60,25 @@ def test_get_status():
     assert data["status"] == "processing"
     assert data["progress"] == 50
 
-    #returns 404 for non existent job
+    # returns 404 for non existent job
     response = client.get("/status/non-existent-job")
     assert response.status_code == 404
     data = response.json()
     assert "error" in data
 
 def test_download_video():
-    #returns 404 for non existent job
+    # returns 404 for non existent job
     response = client.get("/download/non-existent-job")
     assert response.status_code == 404
 
-    #returns 400 for incomplete job
+    # returns 400 for incomplete job
     job_status["incomplete-job"] = {
         "status": "processing"
     }
     response = client.get("/download/incomplete-job")
     assert response.status_code == 400
 
-    #returns 404 when output file doesnt exist
+    # returns 404 when output file doesnt exist
     job_status["completed-job"] = {
         "status": "completed"
     }
@@ -91,7 +91,7 @@ def test_download_video():
         assert response.status_code == 404
 
 def test_update_progress():
-    #updates job progress
+    # updates job progress
     from src.final_app.main import update_progress
     
     job_status["test-job"] = {
@@ -105,6 +105,6 @@ def test_update_progress():
     assert job_status["test-job"]["progress"] == 50
     assert job_status["test-job"]["message"] == "Halfway done"
 
-    #ignores non existent job
+    # ignores non existent job
     update_progress("non-existent", 100, "Done")
     assert "non-existent" not in job_status

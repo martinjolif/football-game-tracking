@@ -4,7 +4,7 @@ import supervision as sv
 from app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 
 def test_detections_from_results():
-    #returns empty detections when no valid detections
+    # returns empty detections when no valid detections
     results = []
     detected_class_ids = [1, 2]
     detections = detections_from_results(results, detected_class_ids)
@@ -12,7 +12,7 @@ def test_detections_from_results():
     assert detections.confidence.shape == (0,)
     assert detections.class_id.shape == (0,)
 
-    #converts valid detections to supervision detections
+    # converts valid detections to supervision detections
     results = [
         {
             "bbox": {"x0": 10, "y0": 20, "x1": 30, "y1": 40},
@@ -35,7 +35,7 @@ def test_detections_from_results():
     assert detections.confidence[0] == 0.9
     assert detections.class_id[0] == 1
 
-    #filters detections by class id
+    # filters detections by class id
     results = [
         {
             "bbox": {"x0": 10, "y0": 20, "x1": 30, "y1": 40},
@@ -53,7 +53,7 @@ def test_detections_from_results():
     assert detections.xyxy.shape == (1, 4)
     assert detections.class_id[0] == 1
 
-    #ignores detections with missing bbox fields
+    # ignores detections with missing bbox fields
     results = [
         {
             "bbox": {"x0": 10, "y0": 20},  # missing x1, y1
@@ -67,7 +67,7 @@ def test_detections_from_results():
 
 
 def test_keypoints_from_pose_results():
-    #returns empty keypoints when no poses
+    # returns empty keypoints when no poses
     results = {"poses": []}
     keypoints, masks = keypoints_from_pose_results(results)
     assert keypoints.xy.shape == (0, 0, 2)
@@ -75,7 +75,7 @@ def test_keypoints_from_pose_results():
     assert keypoints.class_id.shape == (0,)
     assert masks == []
 
-    #converts valid poses to supervision keypoints
+    # converts valid poses to supervision keypoints
     results = {
         "poses": [
             {
@@ -96,7 +96,7 @@ def test_keypoints_from_pose_results():
     assert keypoints.confidence[0][0] == 0.9
     assert masks[0] == [True, True]
 
-    #filters keypoints by confidence threshold
+    # filters keypoints by confidence threshold
     results = {
         "poses": [
             {
@@ -113,7 +113,7 @@ def test_keypoints_from_pose_results():
     assert np.array_equal(keypoints.xy[0][0], [10, 20])
     assert masks[0] == [True, False]
 
-    #skips poses with no keypoints above threshold
+    # skips poses with no keypoints above threshold
     results = {
         "poses": [
             {
@@ -128,7 +128,7 @@ def test_keypoints_from_pose_results():
     keypoints, masks = keypoints_from_pose_results(results, confidence_threshold=0.5)
     assert keypoints.xy.shape == (0, 0, 2)
 
-    #handles multiple poses
+    # handles multiple poses
     results = {
         "poses": [
             {
