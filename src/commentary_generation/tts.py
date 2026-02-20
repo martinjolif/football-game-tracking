@@ -13,10 +13,19 @@ class TTSGenerator:
 
     def _load(self):
         if self._model is None:
+            import torch
             from qwen_tts import Qwen3TTSModel
+
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
+
             self._model = Qwen3TTSModel.from_pretrained(
                 TTS_MODEL_PATH,
-                device_map="auto",
+                device_map=device,
             )
 
     def generate_wav(self, text: str) -> str:
