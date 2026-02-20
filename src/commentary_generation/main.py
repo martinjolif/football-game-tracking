@@ -6,18 +6,25 @@ from src.commentary_generation.config import LLM_MODEL, TEMPERATURE, TOP_P
 from src.commentary_generation.events3 import generate_event
 from src.utils.logger import LOGGER
 
-def generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch):
+def generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch,
+                    seconds_since_last=None, possession_changes=0, ball_distance_traveled=0.0, prev_ball_zone=None):
     prompt = "You are a football commentator. Describe the following situation in 1-2 sentences:\n\n"
-    event = generate_event(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch)
+    event = generate_event(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch,
+                           seconds_since_last=seconds_since_last, possession_changes=possession_changes,
+                           ball_distance_traveled=ball_distance_traveled, prev_ball_zone=prev_ball_zone)
     if event is not None:
         prompt += event
         return prompt
     else:
         return None
 
-def generate_commentary_ollama(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch, model=LLM_MODEL, temperature=TEMPERATURE, top_p=TOP_P):
+def generate_commentary_ollama(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch,
+                                seconds_since_last=None, possession_changes=0, ball_distance_traveled=0.0, prev_ball_zone=None,
+                                model=LLM_MODEL, temperature=TEMPERATURE, top_p=TOP_P):
     url = os.getenv("OLLAMA_URL" , "http://localhost:11434/api/generate")
-    prompt = generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch)
+    prompt = generate_prompt(previous_ball_xy, ball_xy, players_xy, cluster_labels, left_team, right_team, teams_barycenter, pitch,
+                             seconds_since_last=seconds_since_last, possession_changes=possession_changes,
+                             ball_distance_traveled=ball_distance_traveled, prev_ball_zone=prev_ball_zone)
     if prompt is None:
         return None
     else:

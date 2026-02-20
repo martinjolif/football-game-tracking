@@ -15,7 +15,7 @@ from src.app.debug_visualization import render_detection_results
 from src.app.image_api import call_image_apis
 from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
-from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
+from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor, get_field_zone_3x3
 from src.commentary_generation.main import generate_commentary_ollama
 from src.commentary_generation.plot import draw_commentary
 from src.commentary_generation.tts import TTSGenerator
@@ -40,6 +40,7 @@ class VideoProcessor:
             img_size: int = 224,
             cluster_history_length: int = 20,
             ball_movement_threshold: int = 200,
+            min_commentary_interval_frames: int = 300,
             enable_tts: bool = False,
             progress_callback=None
     ):
@@ -54,6 +55,7 @@ class VideoProcessor:
         self.img_size = img_size
         self.cluster_history_length = cluster_history_length
         self.ball_movement_threshold = ball_movement_threshold
+        self.min_commentary_interval_frames = min_commentary_interval_frames
         self.enable_tts = enable_tts and enable_commentary
         self.progress_callback = progress_callback
 
@@ -90,6 +92,14 @@ class VideoProcessor:
         self._fps = None
         self.tts_generator = TTSGenerator() if self.enable_tts else None
         self.tts_clips: list[tuple[float, str]] = []  # (timestamp_sec, wav_path)
+
+        # Commentary temporal tracking
+        self._last_commentary_frame: int = 0
+        self._ball_distance_since_last: float = 0.0
+        self._possession_changes_since_last: int = 0
+        self._prev_frame_ball_xy = None
+        self._prev_frame_possession_team = None
+        self._prev_commentary_ball_zone: str | None = None
 
     def _init_team_clustering(self, model_path: str):
         """Initialize team clustering model"""
@@ -269,19 +279,27 @@ class VideoProcessor:
 
                 if ball_xy is not None and len(ball_xy) > 0 and self.left_team is not None:
                     players = assign_teams(players_xy, self.cluster_labels)
-                    possession_team = players[get_ball_possessor(ball_xy, players_xy)]['team'] \
-                        if get_ball_possessor(ball_xy, players_xy) is not None else None
+                    possessor_idx = get_ball_possessor(ball_xy, players_xy)
+                    possession_team = players[possessor_idx]['team'] if possessor_idx is not None else None
 
-                    generate_new = False
-                    if self.last_ball_xy is None or self.last_possession_team is None:
-                        generate_new = True
-                    else:
-                        ball_movement = ((ball_xy[0][0] - self.last_ball_xy[0][0]) ** 2 +
-                                         (ball_xy[0][1] - self.last_ball_xy[0][1]) ** 2) ** 0.5
-                        if ball_movement > self.ball_movement_threshold or possession_team != self.last_possession_team:
-                            generate_new = True
+                    # Accumulate per-frame stats for temporal context
+                    if self._prev_frame_ball_xy is not None:
+                        dist = ((ball_xy[0][0] - self._prev_frame_ball_xy[0][0]) ** 2 +
+                                (ball_xy[0][1] - self._prev_frame_ball_xy[0][1]) ** 2) ** 0.5
+                        self._ball_distance_since_last += dist
+                    if possession_team is not None and self._prev_frame_possession_team is not None:
+                        if possession_team != self._prev_frame_possession_team:
+                            self._possession_changes_since_last += 1
+                    self._prev_frame_ball_xy = ball_xy
+                    self._prev_frame_possession_team = possession_team
 
-                    if generate_new:
+                    # Interval-based trigger
+                    if frame_count - self._last_commentary_frame >= self.min_commentary_interval_frames:
+                        seconds_since_last = (
+                            (frame_count - self._last_commentary_frame) / self._fps
+                            if self._last_commentary_frame > 0 and self._fps
+                            else None
+                        )
                         commentary = generate_commentary_ollama(
                             previous_ball_xy=self.last_ball_xy,
                             ball_xy=ball_xy,
@@ -290,7 +308,11 @@ class VideoProcessor:
                             left_team=self.left_team,
                             right_team=self.right_team,
                             teams_barycenter=self.teams_barycenter,
-                            pitch=PitchDimensions()
+                            pitch=PitchDimensions(),
+                            seconds_since_last=seconds_since_last,
+                            possession_changes=self._possession_changes_since_last,
+                            ball_distance_traveled=self._ball_distance_since_last,
+                            prev_ball_zone=self._prev_commentary_ball_zone,
                         )
                         if commentary is not None:
                             self.last_commentary = commentary
@@ -300,6 +322,12 @@ class VideoProcessor:
                                 self.tts_clips.append((timestamp_sec, wav_path))
                         self.last_ball_xy = ball_xy
                         self.last_possession_team = possession_team
+                        self._last_commentary_frame = frame_count
+                        self._prev_commentary_ball_zone = get_field_zone_3x3(
+                            [ball_xy[0][0], ball_xy[0][1]], PitchDimensions()
+                        )
+                        self._ball_distance_since_last = 0.0
+                        self._possession_changes_since_last = 0
 
                 if self.last_commentary is not None:
                     annotated_frame = draw_commentary(

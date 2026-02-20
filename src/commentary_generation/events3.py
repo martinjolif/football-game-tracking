@@ -105,7 +105,11 @@ def generate_event(
         left_team,
         right_team,
         teams_barycenter,
-        pitch: PitchDimensions
+        pitch: PitchDimensions,
+        seconds_since_last: float = None,
+        possession_changes: int = 0,
+        ball_distance_traveled: float = 0.0,
+        prev_ball_zone: str = None,
 ):
     possessor_idx = get_ball_possessor(ball_xy, players_xy)
     if possessor_idx is not None:
@@ -132,29 +136,50 @@ def generate_event(
         event += f"- Team {left_team} barycenter is located around {get_field_zone_3x3(teams_barycenter[left_team], pitch)}.\n"
         event += f"- Team {right_team} barycenter is located around {get_field_zone_3x3(teams_barycenter[right_team], pitch)}.\n\n"
 
-        event += "Live match context:\n"
+        event += "Current situation:\n"
         event += f"- The ball is located in the {ball_zone}.\n"
         event += f"- Team {possessing_team} is in control of the ball.\n"
         if movement and movement != "static":
             event += f"- The ball is moving {movement} relative to the possessing team.\n"
         else:
             event += f"- The ball is static relative to the possessing team.\n"
-        event += f"- The ball is {ball_relative_possessing_team_x} the possessing team’s average position.\n"
-        event += f"- The ball is {ball_relative_unpossessing_team_x} the unpossessing team’s average position.\n\n"
+        event += f"- The ball is {ball_relative_possessing_team_x} the possessing team's average position.\n"
+        event += f"- The ball is {ball_relative_unpossessing_team_x} the unpossessing team's average position.\n\n"
 
-        # TV-style commentary prompt embedded
-        event += (
-            "Commentary task:\n"
-            "Provide a short, TV-style football commentary describing the scene exactly as it appears right now.\n"
-            "Style and constraints:\n"
-            "- Use natural, live broadcast language.\n"
-            "- Use present tense only.\n"
-            "- Describe only observable facts: ball location and which team has possession.\n"
-            "- Do NOT invent passes, shots, movement, pressure, or intent.\n"
-            "- Do NOT predict what will happen next.\n"
-            "- Do NOT reinterpret pitch orientation or team directions.\n"
-            "- Keep the commentary concise (1 sentence is preferred).\n"
-        )
+        if seconds_since_last is not None:
+            zone_transition = (
+                f"from the {prev_ball_zone.replace('-', ' ')} to the {ball_zone.replace('-', ' ')}"
+                if prev_ball_zone and prev_ball_zone != ball_zone
+                else f"remaining in the {ball_zone.replace('-', ' ')}"
+            )
+            event += "What happened since the last commentary:\n"
+            event += f"- {seconds_since_last:.0f} seconds have elapsed.\n"
+            event += f"- The ball traveled approximately {ball_distance_traveled / 100:.0f} meters, {zone_transition}.\n"
+            event += f"- Possession changed {possession_changes} time(s).\n\n"
+
+            event += (
+                f"Commentary task:\n"
+                f"Write 1-2 sentences of TV-style football commentary that capture the last {seconds_since_last:.0f} seconds "
+                f"of play and the current situation.\n"
+                "Style and constraints:\n"
+                "- Use live broadcast language.\n"
+                "- Reference what changed (zone transition, possession swaps if any) and what is happening now.\n"
+                "- Use present tense for the current moment, past tense for what just happened.\n"
+                "- Do NOT invent specific actions (passes, shots, tackles) not described above.\n"
+                "- Do NOT predict what will happen next.\n"
+            )
+        else:
+            event += (
+                "Commentary task:\n"
+                "Provide a short, TV-style football commentary describing the scene exactly as it appears right now.\n"
+                "Style and constraints:\n"
+                "- Use natural, live broadcast language.\n"
+                "- Use present tense only.\n"
+                "- Describe only observable facts: ball location and which team has possession.\n"
+                "- Do NOT invent passes, shots, movement, pressure, or intent.\n"
+                "- Do NOT predict what will happen next.\n"
+                "- Keep the commentary concise (1 sentence is preferred).\n"
+            )
 
         return event
     else:
