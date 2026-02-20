@@ -3,6 +3,8 @@ import tempfile
 
 import soundfile as sf
 
+from src.utils.logger import LOGGER
+
 TTS_MODEL_PATH = os.getenv("TTS_MODEL_PATH", "weights/tts/hf_weights")
 TTS_SPEAKER = os.getenv("TTS_SPEAKER", "Ryan")
 
@@ -34,6 +36,7 @@ class TTSGenerator:
         The caller is responsible for deleting the file when done.
         """
         self._load()
+        LOGGER.info(f"TTS input: {text!r}")
         wavs, sr = self._model.generate_custom_voice(
             text=text,
             language="English",
