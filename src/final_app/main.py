@@ -54,6 +54,7 @@ async def upload_video(
         enable_team_clustering: bool = Form(True),
         end_frame: Optional[int] = Form(None),
         cluster_train_frames: int = Form(50),
+        enable_tts: bool = Form(False),
 ):
     """Upload video and start processing"""
 
@@ -83,6 +84,7 @@ async def upload_video(
         enable_team_clustering=enable_team_clustering,
         end_frame=end_frame,
         cluster_train_frames=cluster_train_frames,
+        enable_tts=enable_tts,
     )
 
     return {
@@ -142,6 +144,7 @@ def process_video(
         enable_team_clustering: bool,
         end_frame: Optional[int],
         cluster_train_frames: int,
+        enable_tts: bool = False,
 ):
     """Background task to process video"""
     from src.final_app.video_processor import VideoProcessor
@@ -159,6 +162,7 @@ def process_video(
             enable_team_clustering=enable_team_clustering,
             end_frame=end_frame,
             cluster_train_frames=cluster_train_frames,
+            enable_tts=enable_tts,
             progress_callback=lambda progress, message: update_progress(job_id, progress, message)
         )
 
