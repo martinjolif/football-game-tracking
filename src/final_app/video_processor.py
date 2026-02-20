@@ -18,6 +18,7 @@ from src.app.utils import collect_class_ids
 from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor
 from src.commentary_generation.main import generate_commentary_ollama
 from src.commentary_generation.plot import draw_commentary
+from src.commentary_generation.tts import TTSGenerator
 from src.radar.pitch_dimensions import PitchDimensions
 from src.radar.pitch_radar_visualization import render_pitch_radar
 from src.team_clustering.clustering_model import ClusteringModel
@@ -39,6 +40,7 @@ class VideoProcessor:
             img_size: int = 224,
             cluster_history_length: int = 20,
             ball_movement_threshold: int = 200,
+            enable_tts: bool = False,
             progress_callback=None
     ):
         self.video_path = video_path
@@ -52,6 +54,7 @@ class VideoProcessor:
         self.img_size = img_size
         self.cluster_history_length = cluster_history_length
         self.ball_movement_threshold = ball_movement_threshold
+        self.enable_tts = enable_tts and enable_commentary
         self.progress_callback = progress_callback
 
         # Initialize device
@@ -82,6 +85,11 @@ class VideoProcessor:
         self.left_team = None
         self.right_team = None
         self.teams_barycenter = None
+
+        # TTS state
+        self._fps = None
+        self.tts_generator = TTSGenerator() if self.enable_tts else None
+        self.tts_clips: list[tuple[float, str]] = []  # (timestamp_sec, wav_path)
 
     def _init_team_clustering(self, model_path: str):
         """Initialize team clustering model"""
@@ -286,6 +294,10 @@ class VideoProcessor:
                         )
                         if commentary is not None:
                             self.last_commentary = commentary
+                            if self.enable_tts and self._fps:
+                                timestamp_sec = frame_count / self._fps
+                                wav_path = self.tts_generator.generate_wav(commentary)
+                                self.tts_clips.append((timestamp_sec, wav_path))
                         self.last_ball_xy = ball_xy
                         self.last_possession_team = possession_team
 
@@ -298,6 +310,44 @@ class VideoProcessor:
 
         return annotated_frame
 
+    def _merge_audio(self):
+        """Use ffmpeg to embed TTS audio clips at their correct timestamps into the output video."""
+        import subprocess
+
+        tmp_output = self.output_path + ".audio_tmp.mp4"
+        inputs = ["-i", self.output_path]
+        filter_parts = []
+
+        for i, (ts, wav_path) in enumerate(self.tts_clips):
+            inputs += ["-i", wav_path]
+            delay_ms = int(ts * 1000)
+            filter_parts.append(f"[{i + 1}:a]adelay={delay_ms}|{delay_ms}[a{i}]")
+
+        n = len(self.tts_clips)
+        if n == 1:
+            filter_parts.append("[a0]anull[aout]")
+        else:
+            mix = "".join(f"[a{i}]" for i in range(n))
+            filter_parts.append(f"{mix}amix=inputs={n}:normalize=0[aout]")
+
+        cmd = (
+            ["ffmpeg", "-y"]
+            + inputs
+            + [
+                "-filter_complex", ";".join(filter_parts),
+                "-map", "0:v",
+                "-map", "[aout]",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                tmp_output,
+            ]
+        )
+        subprocess.run(cmd, check=True, capture_output=True)
+        os.replace(tmp_output, self.output_path)
+
+        for _, wav_path in self.tts_clips:
+            os.unlink(wav_path)
+
     def process(self):
         """Main processing loop"""
         video_capture = None
@@ -309,6 +359,7 @@ class VideoProcessor:
                 raise ValueError("Failed to open video file")
 
             fps = video_capture.get(cv2.CAP_PROP_FPS)
+            self._fps = fps
             width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
             total_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -360,6 +411,15 @@ class VideoProcessor:
                 video_writer.write(annotated_frame)
 
             self._update_progress(100, "Processing completed")
+
+            # Release writer before audio merge so the file is fully flushed
+            if video_writer:
+                video_writer.release()
+                video_writer = None
+
+            if self.enable_tts and self.tts_clips:
+                self._update_progress(100, "Embedding audio commentary...")
+                self._merge_audio()
 
         finally:
             if video_capture:
