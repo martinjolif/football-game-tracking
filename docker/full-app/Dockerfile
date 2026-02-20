@@ -2,7 +2,7 @@ FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 LABEL authors="mjolif"
 
 # The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates ffmpeg libsm6 libxext6 \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates ffmpeg libsm6 libxext6 libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install UV tool, then cleanup installer
@@ -34,6 +34,9 @@ RUN mkdir -p uploads outputs
 
 RUN uv run hf download martinjolif/mobilenetv3-football-jersey-classification \
     mobilenetv3-football-jersey-classification.pth --local-dir weights/team_clustering/hf_weights
+
+RUN uv run hf download Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice \
+    --local-dir weights/tts/hf_weights
 
 EXPOSE 8080
 
