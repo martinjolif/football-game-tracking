@@ -1,6 +1,7 @@
 import io
 import mimetypes
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Union
 
 import requests
@@ -75,9 +76,17 @@ def call_image_apis(
         ]
 
     results: Dict[str, Dict[str, Any]] = {}
-    for endpoint in endpoints:
-        try:
-            results[endpoint] = call_image_api(endpoint, image_path, image_bytes, timeout=timeout)
-        except HTTPException as e:
-            results[endpoint] = {"error": str(e.detail), "status_code": e.status_code}
+    with ThreadPoolExecutor(max_workers=len(endpoints)) as executor:
+        future_to_endpoint = {
+            executor.submit(call_image_api, endpoint, image_path, image_bytes, timeout): endpoint
+            for endpoint in endpoints
+        }
+        for future in as_completed(future_to_endpoint):
+            endpoint = future_to_endpoint[future]
+            try:
+                results[endpoint] = future.result()
+            except HTTPException as e:
+                results[endpoint] = {"error": str(e.detail), "status_code": e.status_code}
+            except Exception as e:
+                results[endpoint] = {"error": str(e), "status_code": 500}
     return results

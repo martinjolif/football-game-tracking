@@ -244,6 +244,29 @@
             color: #2e7d32;
             font-weight: 600;
         }
+
+        .or-divider {
+            text-align: center;
+            color: #999;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        .btn-example {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .btn-example:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(67, 160, 71, 0.4);
+        }
+
+        .btn-example:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -285,6 +308,10 @@
                     <input type="checkbox" id="enableTeam" checked>
                     <label for="enableTeam">Team Clustering</label>
                 </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableTTS" checked>
+                    <label for="enableTTS">Audio Commentary (TTS)</label>
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
@@ -300,6 +327,12 @@
 
             <button class="btn btn-primary" id="processBtn" disabled>
                 Upload & Process Video
+            </button>
+
+            <div class="or-divider">-- or --</div>
+
+            <button class="btn btn-example" id="exampleBtn">
+                Try with Example Video (08fd33_4.mp4)
             </button>
 
             <div class="progress-section" id="progressSection">
@@ -388,6 +421,7 @@
             formData.append('enable_commentary', document.getElementById('enableCommentary').checked);
             formData.append('enable_tracking', document.getElementById('enableTracking').checked);
             formData.append('enable_team_clustering', document.getElementById('enableTeam').checked);
+            formData.append('enable_tts', document.getElementById('enableTTS').checked);
 
             const endFrame = document.getElementById('endFrame').value;
             if (endFrame) formData.append('end_frame', endFrame);
@@ -433,10 +467,12 @@
                     resultSection.classList.add('active');
                     resultVideo.src = `${API_BASE}/outputs/${jobId}_output.mp4`;
                     processBtn.disabled = false;
+                    exampleBtn.disabled = false;
                 } else if (data.status === 'failed') {
                     showError('Processing failed: ' + data.message);
                     progressSection.classList.remove('active');
                     processBtn.disabled = false;
+                    exampleBtn.disabled = false;
                 } else {
                     setTimeout(() => pollStatus(jobId), 1000);
                 }
@@ -446,6 +482,46 @@
                 processBtn.disabled = false;
             }
         }
+
+        // Example button
+        const exampleBtn = document.getElementById('exampleBtn');
+        exampleBtn.addEventListener('click', async () => {
+            const formData = new FormData();
+            formData.append('enable_radar', document.getElementById('enableRadar').checked);
+            formData.append('enable_commentary', document.getElementById('enableCommentary').checked);
+            formData.append('enable_tracking', document.getElementById('enableTracking').checked);
+            formData.append('enable_team_clustering', document.getElementById('enableTeam').checked);
+            formData.append('enable_tts', document.getElementById('enableTTS').checked);
+
+            const endFrame = document.getElementById('endFrame').value;
+            if (endFrame) formData.append('end_frame', endFrame);
+
+            formData.append('cluster_train_frames', document.getElementById('clusterFrames').value);
+
+            try {
+                exampleBtn.disabled = true;
+                processBtn.disabled = true;
+                progressSection.classList.add('active');
+                resultSection.classList.remove('active');
+
+                const response = await fetch(`${API_BASE}/upload-example`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Failed to start example processing');
+
+                const data = await response.json();
+                currentJobId = data.job_id;
+                pollStatus(currentJobId);
+
+            } catch (error) {
+                showError('Error: ' + error.message);
+                exampleBtn.disabled = false;
+                processBtn.disabled = false;
+                progressSection.classList.remove('active');
+            }
+        });
 
         downloadBtn.addEventListener('click', () => {
             if (currentJobId) {

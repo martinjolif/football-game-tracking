@@ -1,13 +1,16 @@
 import os
+import subprocess
+import tempfile
 from collections import defaultdict, deque
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
 import cv2
 import supervision as sv
 import torch
-import umap
 from PIL import Image
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from torchvision import transforms
 
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
@@ -33,7 +36,9 @@ class VideoProcessor:
             enable_commentary: bool = True,
             enable_tracking: bool = True,
             enable_team_clustering: bool = True,
+            enable_tts: bool = True,
             end_frame: int = None,
+            frame_step: int = 1,
             cluster_train_frames: int = 50,
             model_path: str = "weights/team_clustering/hf_weights/mobilenetv3-football-jersey-classification.pth",
             img_size: int = 224,
@@ -48,6 +53,7 @@ class VideoProcessor:
         self.enable_tracking = enable_tracking
         self.enable_team_clustering = enable_team_clustering
         self.end_frame = end_frame
+        self.frame_step = max(1, frame_step)
         self.cluster_train_frames = cluster_train_frames
         self.img_size = img_size
         self.cluster_history_length = cluster_history_length
@@ -83,6 +89,39 @@ class VideoProcessor:
         self.right_team = None
         self.teams_barycenter = None
 
+        # Commentary pacing
+        self._tts_gap_sec = 3  # seconds to wait AFTER last audio clip ends
+        self._last_commentary_frame = -999  # frame when last commentary was dispatched
+        self._previous_event_summary = None  # prior event context for temporal narration
+        self._last_tts_end_sec = 0.0  # video-time when last TTS audio clip finishes playing
+
+        # Background commentary thread pool
+        self._commentary_executor = ThreadPoolExecutor(max_workers=1)
+        self._commentary_future: Future | None = None
+
+        # TTS state
+        self.enable_tts = enable_tts and enable_commentary
+        self._tts_executor: ThreadPoolExecutor | None = None
+        self._tts_futures: list[Future] = []
+        self._tts_segments: list[dict] = []
+        self._tts_sample_rate: int | None = None
+        self._current_fps: float = 30.0
+
+        if self.enable_tts:
+            try:
+                from src.commentary_generation.tts import get_tts_model
+                model, sr = get_tts_model()
+                if model is None:
+                    LOGGER.warning("TTS model failed to load — disabling TTS")
+                    self.enable_tts = False
+                else:
+                    self._tts_sample_rate = sr
+                    self._tts_executor = ThreadPoolExecutor(max_workers=1)
+                    LOGGER.info("TTS enabled (sample_rate=%d)", sr)
+            except Exception:
+                LOGGER.exception("TTS init failed — disabling TTS")
+                self.enable_tts = False
+
     def _init_team_clustering(self, model_path: str):
         """Initialize team clustering model"""
         model_path = Path(model_path)
@@ -101,7 +140,7 @@ class VideoProcessor:
 
         self.cluster_model = ClusteringModel(
             feature_extraction_model=feature_model,
-            dimension_reducer=umap.UMAP(n_neighbors=15, min_dist=0.1),
+            dimension_reducer=PCA(n_components=10),
             clustering_model=KMeans(n_clusters=2)
         )
 
@@ -213,6 +252,49 @@ class VideoProcessor:
                         key=self.recent_clusters[tracker_id].count
                     )
 
+    def _submit_tts_job(self, text: str, frame_number: int, fps: float):
+        """Submit a TTS generation job to the background executor."""
+        if not self.enable_tts or self._tts_executor is None:
+            return
+
+        from src.commentary_generation.tts import generate_tts_audio
+
+        timestamp_sec = frame_number / fps
+        processor = self  # capture reference for the closure
+
+        def _run():
+            waveform, sr = generate_tts_audio(text)
+            if waveform is not None:
+                duration = len(waveform) / sr
+                processor._last_tts_end_sec = timestamp_sec + duration
+                return {"timestamp_sec": timestamp_sec, "waveform": waveform}
+            return None
+
+        future = self._tts_executor.submit(_run)
+        self._tts_futures.append(future)
+
+    def _collect_tts_results(self, timeout: float | None = None):
+        """Drain completed TTS futures into _tts_segments."""
+        remaining = []
+        for future in self._tts_futures:
+            if future.done():
+                try:
+                    result = future.result(timeout=0)
+                    if result is not None:
+                        self._tts_segments.append(result)
+                except Exception:
+                    pass
+            elif timeout is not None:
+                try:
+                    result = future.result(timeout=timeout)
+                    if result is not None:
+                        self._tts_segments.append(result)
+                except Exception:
+                    pass
+            else:
+                remaining.append(future)
+        self._tts_futures = remaining
+
     def _render_frame(self, frame, player_detection, ball_detection, pitch_detection, keypoint_mask, frame_count):
         """Render all visualizations on frame"""
         annotated_frame = frame.copy()
@@ -253,28 +335,52 @@ class VideoProcessor:
             rect = sv.Rect(x=w // 2 - radar_w // 2, y=h - radar_h, width=radar_w, height=radar_h)
             annotated_frame = sv.draw_image(annotated_frame, radar, opacity=0.5, rect=rect)
 
-            # Generate commentary
+            # Generate commentary (non-blocking, with cooldown)
             if self.enable_commentary and self.train_labels_ready:
                 if frame_count == self.cluster_train_frames + 1:
                     players = assign_teams(players_xy, self.cluster_labels)
                     self.left_team, self.right_team, self.teams_barycenter = get_left_team(players)
 
+                # Check if background commentary is ready
+                if self._commentary_future is not None and self._commentary_future.done():
+                    try:
+                        commentary = self._commentary_future.result()
+                        if commentary is not None:
+                            self.last_commentary = commentary
+                            # Submit TTS job for the new commentary
+                            self._submit_tts_job(commentary, frame_count, self._current_fps)
+                    except Exception:
+                        pass
+                    self._commentary_future = None
+
+                current_video_sec = frame_count / self._current_fps
+
+                # Drain completed TTS futures so _last_tts_end_sec is up to date
+                self._collect_tts_results()
+                # Block until: all TTS jobs finished AND audio done playing + gap
+                tts_all_done = all(f.done() for f in self._tts_futures)
+                audio_ready = tts_all_done and (current_video_sec >= self._last_tts_end_sec + self._tts_gap_sec)
+
                 if ball_xy is not None and len(ball_xy) > 0 and self.left_team is not None:
                     players = assign_teams(players_xy, self.cluster_labels)
-                    possession_team = players[get_ball_possessor(ball_xy, players_xy)]['team'] \
-                        if get_ball_possessor(ball_xy, players_xy) is not None else None
+                    possessor_idx = get_ball_possessor(ball_xy, players_xy)
+                    possession_team = players[possessor_idx]['team'] if possessor_idx is not None else None
 
-                    generate_new = False
-                    if self.last_ball_xy is None or self.last_possession_team is None:
-                        generate_new = True
-                    else:
+                    # First commentary fires right after clustering
+                    is_first = self.last_ball_xy is None
+                    situation_changed = False
+                    if not is_first and self.last_ball_xy is not None:
                         ball_movement = ((ball_xy[0][0] - self.last_ball_xy[0][0]) ** 2 +
                                          (ball_xy[0][1] - self.last_ball_xy[0][1]) ** 2) ** 0.5
                         if ball_movement > self.ball_movement_threshold or possession_team != self.last_possession_team:
-                            generate_new = True
+                            situation_changed = True
 
-                    if generate_new:
-                        commentary = generate_commentary_ollama(
+                    should_generate = is_first or (situation_changed and audio_ready)
+
+                    if should_generate and self._commentary_future is None:
+                        # Launch commentary generation in background
+                        self._commentary_future = self._commentary_executor.submit(
+                            generate_commentary_ollama,
                             previous_ball_xy=self.last_ball_xy,
                             ball_xy=ball_xy,
                             players_xy=players_xy,
@@ -282,10 +388,16 @@ class VideoProcessor:
                             left_team=self.left_team,
                             right_team=self.right_team,
                             teams_barycenter=self.teams_barycenter,
-                            pitch=PitchDimensions()
+                            pitch=PitchDimensions(),
+                            previous_event_summary=self._previous_event_summary,
                         )
-                        if commentary is not None:
-                            self.last_commentary = commentary
+                        self._last_commentary_frame = frame_count
+                        # Save current state as previous context for next commentary
+                        from src.commentary_generation.events3 import get_field_zone_3x3
+                        ball_zone = get_field_zone_3x3([ball_xy[0][0], ball_xy[0][1]], PitchDimensions())
+                        self._previous_event_summary = (
+                            f"Team {possession_team} had possession in the {ball_zone}"
+                        )
                         self.last_ball_xy = ball_xy
                         self.last_possession_team = possession_team
 
@@ -309,6 +421,7 @@ class VideoProcessor:
                 raise ValueError("Failed to open video file")
 
             fps = video_capture.get(cv2.CAP_PROP_FPS)
+            self._current_fps = fps
             width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
             total_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -321,6 +434,11 @@ class VideoProcessor:
             video_writer = cv2.VideoWriter(self.output_path, fourcc, fps, (width, height))
 
             frame_count = 0
+            # Cached detection results for frame skipping
+            last_player_detection = None
+            last_ball_detection = None
+            last_pitch_detection = None
+            last_keypoint_mask = None
 
             while True:
                 ret, frame = video_capture.read()
@@ -333,21 +451,37 @@ class VideoProcessor:
                 progress = int((frame_count / total_frames) * 100)
                 self._update_progress(progress, f"Processing frame {frame_count}/{total_frames}")
 
-                # Encode frame
-                frame_bytes = cv2.imencode('.jpg', frame)[1].tobytes()
+                # Only run detection on every Nth frame (or first frame)
+                is_detection_frame = (frame_count == 1 or frame_count % self.frame_step == 0)
 
-                # Call detection APIs
-                results = self._call_detection_apis(frame_bytes)
+                if is_detection_frame:
+                    # Encode frame
+                    frame_bytes = cv2.imencode('.jpg', frame)[1].tobytes()
 
-                # Extract detections
-                player_detection, ball_detection, pitch_detection, keypoint_mask = \
-                    self._extract_detections(results)
+                    # Call detection APIs
+                    results = self._call_detection_apis(frame_bytes)
 
-                # Update tracker
-                if self.player_tracker and player_detection:
-                    player_detection = self.player_tracker.update_with_detections(player_detection)
+                    # Extract detections
+                    player_detection, ball_detection, pitch_detection, keypoint_mask = \
+                        self._extract_detections(results)
 
-                # Process team clustering
+                    # Update tracker
+                    if self.player_tracker and player_detection:
+                        player_detection = self.player_tracker.update_with_detections(player_detection)
+
+                    # Cache FINAL results (post-tracker)
+                    last_player_detection = player_detection
+                    last_ball_detection = ball_detection
+                    last_pitch_detection = pitch_detection
+                    last_keypoint_mask = keypoint_mask
+                else:
+                    # Reuse cached detections
+                    player_detection = last_player_detection
+                    ball_detection = last_ball_detection
+                    pitch_detection = last_pitch_detection
+                    keypoint_mask = last_keypoint_mask
+
+                # Run clustering every frame using current frame crops
                 self._process_team_clustering(frame, player_detection, frame_count)
 
                 # Render frame
@@ -359,10 +493,78 @@ class VideoProcessor:
                 # Write frame
                 video_writer.write(annotated_frame)
 
-            self._update_progress(100, "Processing completed")
+            self._update_progress(95, "Re-encoding video for browser playback...")
 
         finally:
             if video_capture:
                 video_capture.release()
             if video_writer:
                 video_writer.release()
+
+        # Drain pending TTS futures and assemble audio track
+        audio_path = None
+        if self.enable_tts and self._tts_futures:
+            self._update_progress(96, "Waiting for TTS generation to finish...")
+            self._collect_tts_results(timeout=120)
+
+        if self.enable_tts and self._tts_segments and self._tts_sample_rate:
+            from src.commentary_generation.audio_assembler import assemble_audio_track
+
+            total_duration = frame_count / fps if fps > 0 else 0
+            tmp_wav = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp_wav.close()
+            audio_path = tmp_wav.name
+
+            if not assemble_audio_track(
+                self._tts_segments, self._tts_sample_rate, total_duration, audio_path
+            ):
+                LOGGER.warning("Audio assembly failed — producing silent video")
+                os.unlink(audio_path)
+                audio_path = None
+
+        # Re-encode from mp4v to H.264 so browsers can play it
+        try:
+            self._reencode_h264(audio_path=audio_path)
+        finally:
+            if audio_path and os.path.exists(audio_path):
+                os.unlink(audio_path)
+
+        self._update_progress(100, "Processing completed")
+
+    def _reencode_h264(self, audio_path: str | None = None):
+        """Re-encode the output video to H.264 for browser compatibility."""
+        tmp_path = self.output_path + ".tmp.mp4"
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", self.output_path,
+            ]
+
+            if audio_path:
+                cmd += ["-i", audio_path]
+
+            cmd += [
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-crf", "23",
+                "-movflags", "+faststart",
+                "-pix_fmt", "yuv420p",
+            ]
+
+            if audio_path:
+                cmd += ["-c:a", "aac", "-b:a", "128k", "-ac", "1"]
+            else:
+                cmd += ["-an"]
+
+            cmd.append(tmp_path)
+
+            subprocess.run(cmd, check=True, capture_output=True)
+            os.replace(tmp_path, self.output_path)
+            LOGGER.info(
+                "Re-encoded output to H.264%s", " with audio" if audio_path else ""
+            )
+        except subprocess.CalledProcessError as e:
+            LOGGER.error(f"ffmpeg re-encode failed: {e.stderr.decode()}")
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise RuntimeError("Failed to re-encode video for browser playback")

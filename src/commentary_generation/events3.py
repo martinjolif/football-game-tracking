@@ -145,15 +145,14 @@ def generate_event(
         # TV-style commentary prompt embedded
         event += (
             "Commentary task:\n"
-            "Provide a short, TV-style football commentary describing the scene exactly as it appears right now.\n"
+            "Provide a short TV-style football commentary.\n"
             "Style and constraints:\n"
+            "- 1 sentence preferred, 2 max. Keep it concise and punchy.\n"
             "- Use natural, live broadcast language.\n"
-            "- Use present tense only.\n"
-            "- Describe only observable facts: ball location and which team has possession.\n"
-            "- Do NOT invent passes, shots, movement, pressure, or intent.\n"
+            "- If a previous situation was provided, briefly note the transition.\n"
+            "- Do NOT invent specific player names, passes, shots, or intent.\n"
             "- Do NOT predict what will happen next.\n"
             "- Do NOT reinterpret pitch orientation or team directions.\n"
-            "- Keep the commentary concise (1 sentence is preferred).\n"
         )
 
         return event

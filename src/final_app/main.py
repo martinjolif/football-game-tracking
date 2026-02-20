@@ -35,6 +35,9 @@ app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend"
 job_status = {}
 
 
+EXAMPLE_VIDEO = FRONTEND_DIR / "08fd33_4.mp4"
+
+
 @app.get("/")
 async def serve_frontend():
     """Serve the main HTML front-end"""
@@ -42,6 +45,61 @@ async def serve_frontend():
     if index_file.exists():
         return FileResponse(index_file)
     return JSONResponse({"error": "Front-end not found"}, status_code=404)
+
+
+@app.get("/example-video")
+async def get_example_video():
+    """Serve the example video file"""
+    if EXAMPLE_VIDEO.exists():
+        return FileResponse(EXAMPLE_VIDEO, media_type="video/mp4", filename="08fd33_4.mp4")
+    return JSONResponse({"error": "Example video not found"}, status_code=404)
+
+
+@app.post("/upload-example")
+async def upload_example(
+        background_tasks: BackgroundTasks,
+        enable_radar: bool = Form(True),
+        enable_commentary: bool = Form(True),
+        enable_tracking: bool = Form(True),
+        enable_team_clustering: bool = Form(True),
+        enable_tts: bool = Form(True),
+        end_frame: Optional[int] = Form(None),
+        cluster_train_frames: int = Form(50),
+):
+    """Start processing with the built-in example video"""
+    if not EXAMPLE_VIDEO.exists():
+        return JSONResponse({"error": "Example video not found"}, status_code=404)
+
+    job_id = str(uuid.uuid4())
+
+    # Copy example video to uploads
+    video_path = UPLOAD_DIR / f"{job_id}_08fd33_4.mp4"
+    shutil.copy2(EXAMPLE_VIDEO, video_path)
+
+    job_status[job_id] = {
+        "status": "queued",
+        "progress": 0,
+        "message": "Example video loaded, starting processing..."
+    }
+
+    background_tasks.add_task(
+        process_video,
+        job_id=job_id,
+        video_path=str(video_path),
+        enable_radar=enable_radar,
+        enable_commentary=enable_commentary,
+        enable_tracking=enable_tracking,
+        enable_team_clustering=enable_team_clustering,
+        enable_tts=enable_tts,
+        end_frame=end_frame,
+        cluster_train_frames=cluster_train_frames,
+    )
+
+    return {
+        "job_id": job_id,
+        "message": "Example video processing started",
+        "status_url": f"/status/{job_id}"
+    }
 
 
 @app.post("/upload")
@@ -52,6 +110,7 @@ async def upload_video(
         enable_commentary: bool = Form(True),
         enable_tracking: bool = Form(True),
         enable_team_clustering: bool = Form(True),
+        enable_tts: bool = Form(True),
         end_frame: Optional[int] = Form(None),
         cluster_train_frames: int = Form(50),
 ):
@@ -81,6 +140,7 @@ async def upload_video(
         enable_commentary=enable_commentary,
         enable_tracking=enable_tracking,
         enable_team_clustering=enable_team_clustering,
+        enable_tts=enable_tts,
         end_frame=end_frame,
         cluster_train_frames=cluster_train_frames,
     )
@@ -140,6 +200,7 @@ def process_video(
         enable_commentary: bool,
         enable_tracking: bool,
         enable_team_clustering: bool,
+        enable_tts: bool,
         end_frame: Optional[int],
         cluster_train_frames: int,
 ):
@@ -157,6 +218,7 @@ def process_video(
             enable_commentary=enable_commentary,
             enable_tracking=enable_tracking,
             enable_team_clustering=enable_team_clustering,
+            enable_tts=enable_tts,
             end_frame=end_frame,
             cluster_train_frames=cluster_train_frames,
             progress_callback=lambda progress, message: update_progress(job_id, progress, message)
