@@ -90,7 +90,7 @@ class VideoProcessor:
         self.teams_barycenter = None
 
         # Commentary pacing
-        self._tts_gap_sec = 3  # seconds to wait AFTER last audio clip ends
+        self._tts_gap_sec = 1  # seconds to wait AFTER last audio clip ends
         self._last_commentary_frame = -999  # frame when last commentary was dispatched
         self._previous_event_summary = None  # prior event context for temporal narration
         self._last_tts_end_sec = 0.0  # video-time when last TTS audio clip finishes playing
@@ -430,6 +430,7 @@ class VideoProcessor:
                 total_frames = min(total_frames, self.end_frame)
 
             # Initialize video writer
+            os.makedirs(os.path.dirname(self.output_path) or ".", exist_ok=True)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             video_writer = cv2.VideoWriter(self.output_path, fourcc, fps, (width, height))
 
