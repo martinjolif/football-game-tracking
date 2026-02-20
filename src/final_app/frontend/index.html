@@ -285,6 +285,10 @@
                     <input type="checkbox" id="enableTeam" checked>
                     <label for="enableTeam">Team Clustering</label>
                 </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableTts">
+                    <label for="enableTts">Audio Commentary (TTS)</label>
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
@@ -388,6 +392,7 @@
             formData.append('enable_commentary', document.getElementById('enableCommentary').checked);
             formData.append('enable_tracking', document.getElementById('enableTracking').checked);
             formData.append('enable_team_clustering', document.getElementById('enableTeam').checked);
+            formData.append('enable_tts', document.getElementById('enableTts').checked);
 
             const endFrame = document.getElementById('endFrame').value;
             if (endFrame) formData.append('end_frame', endFrame);
