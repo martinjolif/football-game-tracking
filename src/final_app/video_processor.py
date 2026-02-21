@@ -93,8 +93,8 @@ class VideoProcessor:
         self.tts_generator = TTSGenerator() if self.enable_tts else None
         self.tts_clips: list[tuple[float, str]] = []  # (timestamp_sec, wav_path)
 
-        # Commentary temporal tracking
-        self._last_commentary_frame: int = 0
+        # Commentary temporal tracking — negative init ensures first commentary fires immediately after clustering
+        self._last_commentary_frame: int = -self.min_commentary_interval_frames
         self._ball_distance_since_last: float = 0.0
         self._possession_changes_since_last: int = 0
         self._prev_frame_ball_xy = None
