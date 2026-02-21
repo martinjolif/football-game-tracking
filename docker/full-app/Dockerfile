@@ -23,14 +23,26 @@ RUN uv venv && uv sync --no-dev
 
 # Copy content to /app
 COPY src/app ./src/app
+COPY src/ball_detection ./src/ball_detection
 COPY src/commentary_generation ./src/commentary_generation
 COPY src/final_app ./src/final_app
+COPY src/pitch_detection ./src/pitch_detection
+COPY src/player_detection ./src/player_detection
 COPY src/radar ./src/radar
 COPY src/team_clustering ./src/team_clustering
 COPY src/utils ./src/utils
 
 # Create necessary directories
 RUN mkdir -p uploads outputs
+
+RUN uv run hf download martinjolif/yolo-football-player-detection \
+    yolo-football-player-detection.pt --local-dir weights/player_detection/hf_weights
+
+RUN uv run hf download martinjolif/yolo-football-ball-detection \
+    yolo-football-ball-detection.pt --local-dir weights/ball_detection/hf_weights
+
+RUN uv run hf download martinjolif/yolo-football-pitch-detection \
+    yolo-football-pitch-detection.pt --local-dir weights/pitch_detection/hf_weights
 
 RUN uv run hf download martinjolif/mobilenetv3-football-jersey-classification \
     mobilenetv3-football-jersey-classification.pth --local-dir weights/team_clustering/hf_weights

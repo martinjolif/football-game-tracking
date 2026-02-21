@@ -8,7 +8,15 @@ import shutil
 from typing import Optional
 import os
 
+from src.player_detection.api.router import router as player_detection_router
+from src.ball_detection.api.router import router as ball_detection_router
+from src.pitch_detection.api.router import router as pitch_detection_router
+
 app = FastAPI(title="Football Video Analysis API")
+
+app.include_router(player_detection_router)
+app.include_router(ball_detection_router)
+app.include_router(pitch_detection_router)
 
 # CORS middleware
 app.add_middleware(

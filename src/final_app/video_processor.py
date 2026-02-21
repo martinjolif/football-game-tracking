@@ -12,9 +12,11 @@ from torchvision import transforms
 
 from src.app.api_to_supervision import detections_from_results, keypoints_from_pose_results
 from src.app.debug_visualization import render_detection_results
-from src.app.image_api import call_image_apis
 from src.app.player_tracking import visualize_frame
 from src.app.utils import collect_class_ids
+from src.player_detection.api.inference import detect_players_in_image
+from src.ball_detection.api.inference import detect_ball_in_image
+from src.pitch_detection.api.inference import detect_pitch_in_image
 from src.commentary_generation.events3 import get_left_team, assign_teams, get_ball_possessor, get_field_zone_3x3
 from src.commentary_generation.main import generate_commentary_ollama
 from src.commentary_generation.plot import draw_commentary
@@ -132,62 +134,58 @@ class VideoProcessor:
             self.progress_callback(progress, message)
 
     def _call_detection_apis(self, frame_bytes):
-        """Call detection APIs based on enabled features"""
-        endpoints = []
+        """Run detection models directly based on enabled features."""
+        results = {}
 
         # Player detection
         if self.enable_tracking or self.enable_team_clustering or self.enable_radar or self.enable_commentary:
-            endpoints.append(os.getenv("PLAYER_DETECTION_URL", "http://localhost:8000/player-detection/image"))
+            results["player"] = detect_players_in_image(frame_bytes).model_dump()
 
         # Ball detection
         if self.enable_radar or self.enable_commentary:
-            endpoints.append(os.getenv("BALL_DETECTION_URL", "http://localhost:8001/ball-detection/image"))
+            results["ball"] = detect_ball_in_image(frame_bytes).model_dump()
 
         # Pitch detection
         if self.enable_radar or self.enable_commentary or self.enable_team_clustering:
-            endpoints.append(os.getenv("PITCH_DETECTION_URL", "http://localhost:8002/pitch-detection/image"))
+            results["pitch"] = detect_pitch_in_image(frame_bytes).model_dump()
 
-        return call_image_apis(endpoints=endpoints, image_bytes=frame_bytes)
+        return results
 
     def _extract_detections(self, results):
-        """Extract detections from API results"""
+        """Extract detections from inference results."""
         player_detection = None
         ball_detection = None
         pitch_detection = None
         keypoint_mask = None
 
-        player_url = os.getenv("PLAYER_DETECTION_URL", "http://localhost:8000/player-detection/image")
-        ball_url = os.getenv("BALL_DETECTION_URL", "http://localhost:8001/ball-detection/image")
-        pitch_url = os.getenv("PITCH_DETECTION_URL", "http://localhost:8002/pitch-detection/image")
-
         # Player detection
-        if player_url in results:
+        if "player" in results:
             player_detection = detections_from_results(
-                results[player_url]["detections"],
+                results["player"]["detections"],
                 detected_class_ids=collect_class_ids(
                     results,
-                    endpoint=player_url,
+                    endpoint="player",
                     mapping_key="mapping_class",
                     roles=["player", "goalkeeper"],
                 ),
             )
 
         # Ball detection
-        if ball_url in results:
+        if "ball" in results:
             ball_detection = detections_from_results(
-                results[ball_url]["detections"],
+                results["ball"]["detections"],
                 detected_class_ids=collect_class_ids(
                     results,
-                    endpoint=ball_url,
+                    endpoint="ball",
                     mapping_key="mapping_class",
                     roles=["ball"],
                 ),
             )
 
         # Pitch detection
-        if pitch_url in results:
+        if "pitch" in results:
             pitch_detection, keypoint_mask = keypoints_from_pose_results(
-                results[pitch_url],
+                results["pitch"],
                 confidence_threshold=0.7,
             )
             keypoint_mask = keypoint_mask[0] if keypoint_mask else None

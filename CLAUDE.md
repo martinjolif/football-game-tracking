@@ -31,10 +31,8 @@ uv run pytest tests/app/test_functions.py
 # Run a single test
 uv run pytest tests/app/test_functions.py::test_name
 
-# Start individual detection API servers locally
-uvicorn src.player_detection.api.app:app --reload --host 0.0.0.0 --port 8000
-uvicorn src.ball_detection.api.app:app --reload --host 0.0.0.0 --port 8001
-uvicorn src.pitch_detection.api.app:app --reload --host 0.0.0.0 --port 8002
+# Start the full app locally (all detection endpoints included)
+uvicorn src.final_app.main:app --reload --host 0.0.0.0 --port 8080
 
 # Download model weights from HuggingFace
 uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
@@ -53,22 +51,21 @@ docker compose -f docker-compose.nvidia.yml up -d
 
 ## Architecture
 
-The system is composed of microservices orchestrated by a central FastAPI app:
+Two services: the main app (all detection + orchestration) and OLLAMA (LLM inference).
 
 ### Services & Ports
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Main app (`src/final_app/`) | 8080 | Video upload, job orchestration, result download |
-| Player detection (`src/player_detection/`) | 8000 | YOLO11m: players, goalkeepers, referees |
-| Ball detection (`src/ball_detection/`) | 8001 | YOLO11: ball detection |
-| Pitch detection (`src/pitch_detection/`) | 8002 | YOLO11 pose estimation: pitch keypoints |
+| Main app (`src/final_app/`) | 8080 | Video upload, job orchestration, detection endpoints, result download |
 | OLLAMA | 11434 | LLM inference (smollm2:1.7b) |
+
+Detection (player, ball, pitch) runs **in-process** via direct function calls — no HTTP round-trips per frame. The detection endpoints are still exposed on port 8080 (`/player-detection/image`, `/ball-detection/image`, `/pitch-detection/image`) for external use.
 
 ### Pipeline Flow (per-frame)
 
 1. **Frame capture** → encode as JPEG
-2. **Parallel inference** → call all 3 detection APIs simultaneously
+2. **Direct inference** → call player/ball/pitch detection functions in-process
 3. **Tracking** → ByteTrack updates tracker IDs
 4. **Team clustering** (frames 1–50: train UMAP+KMeans; frames 51+: infer)
 5. **Homography** → project image coords to FIFA pitch coords (105m × 68m)
@@ -80,9 +77,11 @@ The system is composed of microservices orchestrated by a central FastAPI app:
 ### Key Files
 
 - `src/final_app/video_processor.py` — `VideoProcessor` class, main orchestration logic
-- `src/final_app/main.py` — FastAPI server: upload endpoint, job status polling, download
-- `src/app/image_api.py` — HTTP calls to detection APIs
-- `src/app/api_to_supervision.py` — Converts API JSON responses to `supervision` format
+- `src/final_app/main.py` — FastAPI server: upload endpoint, detection endpoints, job status polling, download
+- `src/player_detection/api/inference.py` — Player detection (YOLO11m)
+- `src/ball_detection/api/inference.py` — Ball detection (YOLO11)
+- `src/pitch_detection/api/inference.py` — Pitch keypoint detection (YOLO11 pose)
+- `src/app/api_to_supervision.py` — Converts inference results to `supervision` format
 - `src/commentary_generation/events3.py` — Event extraction: team assignment, possession, zones
 - `src/team_clustering/clustering_model.py` — MobileNetV3 + UMAP + KMeans pipeline
 - `src/radar/homography.py` — 2D pitch coordinate transformation
@@ -105,14 +104,9 @@ All three detection services return this shape:
 
 For local development (set in `.env` or shell):
 ```
-PLAYER_DETECTION_URL=http://localhost:8000/player-detection/image
-BALL_DETECTION_URL=http://localhost:8001/ball-detection/image
-PITCH_DETECTION_URL=http://localhost:8002/pitch-detection/image
 OLLAMA_URL=http://localhost:11434/api/generate
 OLLAMA_MODEL=smollm2:1.7b
 ```
-
-In Docker, service names replace `localhost` (e.g., `http://player-detection:8000`).
 
 ### Model Weights Paths
 
