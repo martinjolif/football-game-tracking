@@ -47,7 +47,7 @@ body {
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .upload-section:hover {
@@ -68,6 +68,42 @@ body {
     font-size: 3rem;
     color: #667eea;
     margin-bottom: 15px;
+}
+
+.demo-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 12px 20px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.btn-demo {
+    background: linear-gradient(135deg, #43c6ac 0%, #191654 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-demo:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(67, 198, 172, 0.4);
+}
+
+.btn-demo:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .settings-grid {
@@ -152,6 +188,7 @@ body {
 
 .progress-section {
     display: none;
+    margin-top: 20px;
 }
 
 .progress-section.active {
@@ -187,6 +224,7 @@ body {
 
 .result-section {
     display: none;
+    margin-top: 20px;
 }
 
 .result-section.active {
@@ -197,6 +235,7 @@ video {
     width: 100%;
     border-radius: 8px;
     margin-bottom: 20px;
+    background: #000;
 }
 
 .btn-download {
@@ -243,4 +282,76 @@ video {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-bottom: 30px;
+}
+
+/* Recent videos */
+.no-videos-msg {
+    color: #999;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.recent-video-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: background 0.2s ease;
+}
+
+.recent-video-item:hover {
+    background: #f8f9ff;
+}
+
+.recent-video-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+.recent-video-date {
+    color: #888;
+    font-size: 0.82rem;
+}
+
+.recent-video-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-small {
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-play {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-play:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+}
+
+.btn-dl {
+    background: #4caf50;
+    color: white;
+}
+
+.btn-dl:hover {
+    background: #45a049;
+    transform: translateY(-1px);
 }

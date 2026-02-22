@@ -26,6 +26,11 @@
                 </div>
             </div>
 
+            <div class="demo-banner">
+                <span>No video? Try the built-in demo:</span>
+                <button class="btn btn-demo" id="demoBtn">▶ Use Demo Video</button>
+            </div>
+
             <h3 style="margin-bottom: 20px;">Analysis Options</h3>
 
             <div class="settings-grid">
@@ -63,7 +68,7 @@
             </div>
 
             <button class="btn btn-primary" id="processBtn" disabled>
-                Upload & Process Video
+                Upload &amp; Process Video
             </button>
 
             <div class="progress-section" id="progressSection">
@@ -75,10 +80,17 @@
 
             <div class="result-section" id="resultSection">
                 <h3 style="margin-bottom: 20px;">Processed Video</h3>
-                <video id="resultVideo" controls></video>
+                <video id="resultVideo" controls playsinline></video>
                 <button class="btn btn-download" id="downloadBtn">
                     Download Processed Video
                 </button>
+            </div>
+        </div>
+
+        <div class="card" id="recentVideosCard">
+            <h3 style="margin-bottom: 20px;">Recent Processed Videos</h3>
+            <div id="recentVideosList">
+                <p class="no-videos-msg">No processed videos found.</p>
             </div>
         </div>
     </div>

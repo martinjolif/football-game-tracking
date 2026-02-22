@@ -19,6 +19,7 @@ const progressFill = document.getElementById('progressFill');
 const statusMessage = document.getElementById('statusMessage');
 const resultVideo = document.getElementById('resultVideo');
 const downloadBtn = document.getElementById('downloadBtn');
+const demoBtn = document.getElementById('demoBtn');
 
 // Upload section click
 uploadSection.addEventListener('click', () => fileInput.click());
@@ -98,6 +99,34 @@ processBtn.addEventListener('click', async () => {
     }
 });
 
+// Demo button
+demoBtn.addEventListener('click', async () => {
+    try {
+        demoBtn.disabled = true;
+        demoBtn.textContent = 'Starting...';
+        hideError();
+        progressSection.classList.add('active');
+        resultSection.classList.remove('active');
+
+        const response = await fetch(`${API_BASE}/demo`, { method: 'POST' });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to start demo');
+        }
+
+        const data = await response.json();
+        currentJobId = data.job_id;
+        pollStatus(currentJobId);
+
+    } catch (error) {
+        showError('Error starting demo: ' + error.message);
+        progressSection.classList.remove('active');
+    } finally {
+        demoBtn.disabled = false;
+        demoBtn.textContent = '▶ Use Demo Video';
+    }
+});
+
 async function pollStatus(jobId) {
     try {
         const response = await fetch(`${API_BASE}/status/${jobId}`);
@@ -109,9 +138,9 @@ async function pollStatus(jobId) {
 
         if (data.status === 'completed') {
             progressSection.classList.remove('active');
-            resultSection.classList.add('active');
-            resultVideo.src = `${API_BASE}/outputs/${jobId}_output.mp4`;
+            showResult(jobId);
             processBtn.disabled = false;
+            loadRecentVideos();
         } else if (data.status === 'failed') {
             showError('Processing failed: ' + data.message);
             progressSection.classList.remove('active');
@@ -126,11 +155,68 @@ async function pollStatus(jobId) {
     }
 }
 
+function showResult(jobId) {
+    resultSection.classList.add('active');
+    // Use download endpoint which supports range requests needed for seeking
+    resultVideo.src = `${API_BASE}/outputs/${jobId}_output.mp4`;
+    resultVideo.load();
+}
+
 downloadBtn.addEventListener('click', () => {
     if (currentJobId) {
         window.open(`${API_BASE}/download/${currentJobId}`, '_blank');
     }
 });
+
+// Recent videos
+async function loadRecentVideos() {
+    try {
+        const response = await fetch(`${API_BASE}/videos`);
+        if (!response.ok) return;
+        const videos = await response.json();
+        renderRecentVideos(videos);
+    } catch (e) {
+        // Silently fail
+    }
+}
+
+function renderRecentVideos(videos) {
+    const list = document.getElementById('recentVideosList');
+    if (!videos || videos.length === 0) {
+        list.innerHTML = '<p class="no-videos-msg">No processed videos found.</p>';
+        return;
+    }
+
+    list.innerHTML = videos.map(v => {
+        const date = v.completed_at
+            ? new Date(v.completed_at + 'Z').toLocaleString()
+            : 'Unknown date';
+        const name = v.original_filename || 'video.mp4';
+        return `
+        <div class="recent-video-item">
+            <div class="recent-video-info">
+                <div class="recent-video-name">${escapeHtml(name)}</div>
+                <div class="recent-video-date">${date}</div>
+            </div>
+            <div class="recent-video-actions">
+                <button class="btn-small btn-play" onclick="playRecentVideo('${v.job_id}', '${v.stream_url}')">▶ Play</button>
+                <a class="btn-small btn-dl" href="${API_BASE}${v.download_url}" download>⬇ Download</a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function playRecentVideo(jobId, streamUrl) {
+    currentJobId = jobId;
+    resultSection.classList.add('active');
+    resultVideo.src = `${API_BASE}${streamUrl}`;
+    resultVideo.load();
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 function showError(message) {
     errorMessage.textContent = message;
@@ -140,3 +226,6 @@ function showError(message) {
 function hideError() {
     errorMessage.classList.remove('active');
 }
+
+// Load recent videos on page load
+loadRecentVideos();
