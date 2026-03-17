@@ -7,12 +7,17 @@ from ultralytics import YOLO
 from src.ball_detection.api.config import INFERENCE_MODEL_PATH, DEVICE, IOU_THRESHOLD, CONFIDENCE_THRESHOLD, INFERENCE_IMG_SIZE
 from src.utils.schemas import DetectionInferenceResponse, BoundingBox, Detection
 
-model = YOLO(INFERENCE_MODEL_PATH)
-#model.export(format="onnx")  # Export the model to ONNX format
-#TODO: Load the ONNX model for inference instead of the original YOLO model
+_model = None
+
+def _get_model():
+    global _model
+    if _model is None:
+        _model = YOLO(INFERENCE_MODEL_PATH)
+    return _model
 
 def detect_ball_in_image(image_bytes: bytes) -> DetectionInferenceResponse:
     """Perform ball detection on a single image."""
+    model = _get_model()
     try:
         image_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except (UnidentifiedImageError, OSError) as e:

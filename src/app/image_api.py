@@ -70,9 +70,9 @@ def call_image_apis(
 
     if endpoints is None:
         endpoints = [
-            "http://localhost:8000/player-detection/image",
-            "http://localhost:8001/ball-detection/image",
-            "http://localhost:8002/pitch-detection/image",
+            "http://localhost:8080/player-detection/image",
+            "http://localhost:8080/ball-detection/image",
+            "http://localhost:8080/pitch-detection/image",
         ]
 
     results: Dict[str, Dict[str, Any]] = {}
