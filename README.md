@@ -175,34 +175,28 @@ To do so, we create events from the players and ball positions (e.g., "The ball 
 
 https://github.com/user-attachments/assets/3ff1340e-cdc8-4c53-9c19-d9b9c3ae8319
 
+### Text-to-Speech with Qwen3-TTS
+
+The idea is to convert the generated commentaries from the LLM into audio with Qwen3-TTS.
+
 ### Run tests
 ```
 uv run pytest
 ```
 
-### API Server Startup Instructions (Player, Ball, Pitch)
+### API Server Startup Instructions
 To run the API server, use the following command from the root folder:
 ```
-uvicorn src.player_detection.api.app:app --reload --host 0.0.0.0 --port 8000
-curl -X POST "http://localhost:8000/player-detection/image" -F "file=@<path_to_your_image.jpg>"
+uvicorn src.player_detection.api.app:app --reload --host 0.0.0.0 --port 8080
 ```
 
-```
-uvicorn src.ball_detection.api.app:app --reload --host 0.0.0.0 --port 8001
-curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@<path_to_your_image.jpg>"
-```
-
-```
-uvicorn src.pitch_detection.api.app:app --reload --host 0.0.0.0 --port 8002
-curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@<path_to_your_image.jpg>"
-```
-Make sure to update the ``src/player_detection/api/config.py`` file with the correct path to your model weights.
+Make sure to update the ``src/<object>_detection/api/config.py`` file with the correct path to your model weights.
 
 Call examples
 ```
-curl -X POST "http://localhost:8000/player-detection/image" -F "file=@training/player_detection/data/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
-curl -X POST "http://localhost:8001/ball-detection/image" -F "file=@training/ball_detection/data/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
-curl -X POST "http://localhost:8002/pitch-detection/image" -F "file=@training/pitch_detection/data/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
+curl -X POST "http://localhost:8080/player-detection/image" -F "file=@training/player_detection/data/test/images/4b770a_9_3_png.rf.64599238d2f363e9e36e711b55426d1b.jpg"
+curl -X POST "http://localhost:8080/ball-detection/image" -F "file=@training/ball_detection/data/test/images/0a2d9b_0_mp4-0071_jpg.rf.852b629138f67394f68b712f3160b7a2.jpg"
+curl -X POST "http://localhost:8080/pitch-detection/image" -F "file=@training/pitch_detection/data/test/images/08fd33_2_9_png.rf.904829f5d75dafc562926ef44d02c5a3.jpg"
 ```
 
 ### Build and Run Docker Image
@@ -270,12 +264,12 @@ http://<ip-address>:8080
 
 Call the API:
 ```
-curl -X POST "http://<ip-address>:8000/player-detection/image" \
+curl -X POST "http://<ip-address>:8080/player-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
     
-curl -X POST "http://<ip-address>:8001/ball-detection/image" \
+curl -X POST "http://<ip-address>:8080/ball-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
 
-curl -X POST "http://<ip-address>:8002/pitch-detection/image" \
+curl -X POST "http://<ip-address>:8080/pitch-detection/image" \
     -F "file=@<path_to_your_image.jpg>"
 ```
