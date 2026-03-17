@@ -26,14 +26,15 @@ def get_tts_model():
         from qwen_tts import Qwen3TTSModel
 
         model_name = os.environ.get(
-            "QWEN_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+            "QWEN_TTS_MODEL", "weights/tts/hf_weights"
         )
 
         logger.info("Loading TTS model: %s", model_name)
+        device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         _tts_model = Qwen3TTSModel.from_pretrained(
             model_name,
-            device_map="cuda:0",
-            dtype=torch.bfloat16,
+            device_map=device,
+            dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32, #MPS does NOT support bfloat16
         )
         # Probe sample rate with a tiny generation
         _, _tts_sample_rate = _tts_model.generate_custom_voice(
