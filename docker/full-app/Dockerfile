@@ -21,6 +21,14 @@ COPY pyproject.toml uv.lock .python-version ./
 # Synchronize uv env
 RUN uv venv && uv sync --no-dev
 
+# Download Hugging Face models during build
+RUN uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
+RUN uv run hf download martinjolif/yolo-football-ball-detection --local-dir weights/ball_detection/hf_weights
+RUN uv run hf download martinjolif/yolo-football-pitch-detection --local-dir weights/pitch_detection/hf_weights
+RUN uv run hf download martinjolif/mobilenetv3-football-jersey-classification \
+    mobilenetv3-football-jersey-classification.pth --local-dir weights/team_clustering/hf_weights
+RUN uv run hf download Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice --local-dir weights/tts/hf_weights
+
 # Copy content to /app
 COPY src/app ./src/app
 COPY src/ball_detection ./src/ball_detection
@@ -34,14 +42,6 @@ COPY src/utils ./src/utils
 
 # Create necessary directories
 RUN mkdir -p uploads outputs
-
-RUN uv run hf download martinjolif/yolo-football-player-detection --local-dir weights/player_detection/hf_weights
-RUN uv run hf download martinjolif/yolo-football-ball-detection --local-dir weights/ball_detection/hf_weights
-RUN uv run hf download martinjolif/yolo-football-pitch-detection --local-dir weights/pitch_detection/hf_weights
-RUN uv run hf download martinjolif/mobilenetv3-football-jersey-classification \
-    mobilenetv3-football-jersey-classification.pth --local-dir weights/team_clustering/hf_weights
-
-RUN uv run hf download Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice --local-dir weights/tts/hf_weights
 
 EXPOSE 8080
 
