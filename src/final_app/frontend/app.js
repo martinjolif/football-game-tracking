@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFileDiv = document.getElementById('selectedFile');
     const fileNameSpan = document.getElementById('fileName');
     const processBtn = document.getElementById('processBtn');
-    const exampleBtn = document.getElementById('exampleBtn');
     const progressSection = document.getElementById('progressSection');
     const resultSection = document.getElementById('resultSection');
     const errorMessage = document.getElementById('errorMessage');
@@ -21,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('statusMessage');
     const resultVideo = document.getElementById('resultVideo');
     const downloadBtn = document.getElementById('downloadBtn');
+    const demoBtn = document.getElementById('demoBtn');
+    const stopBtn = document.getElementById('stopBtn');
 
     // Upload section click
     uploadSection.addEventListener('click', () => fileInput.click());
@@ -77,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             processBtn.disabled = true;
+            stopBtn.disabled = false;
             progressSection.classList.add('active');
             resultSection.classList.remove('active');
 
@@ -98,32 +100,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Example button
-    exampleBtn.addEventListener('click', async () => {
-        const formData = getFormOptions();
-
+    // Demo button
+    demoBtn.addEventListener('click', async () => {
         try {
-            exampleBtn.disabled = true;
-            processBtn.disabled = true;
+            demoBtn.disabled = true;
+            demoBtn.textContent = 'Starting...';
+            stopBtn.disabled = false;
+            hideError();
             progressSection.classList.add('active');
             resultSection.classList.remove('active');
 
-            const response = await fetch(`${API_BASE}/upload-example`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) throw new Error('Failed to start example processing');
+            const response = await fetch(`${API_BASE}/demo`, { method: 'POST' });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to start demo');
+            }
 
             const data = await response.json();
             currentJobId = data.job_id;
             pollStatus(currentJobId);
 
         } catch (error) {
-            showError('Error: ' + error.message);
-            exampleBtn.disabled = false;
-            processBtn.disabled = false;
+            showError('Error starting demo: ' + error.message);
             progressSection.classList.remove('active');
+        } finally {
+            demoBtn.disabled = false;
+            demoBtn.textContent = '▶ Use Demo Video';
+        }
+    });
+
+    // Stop button
+    stopBtn.addEventListener('click', async () => {
+        if (!currentJobId) return;
+        stopBtn.disabled = true;
+        try {
+            await fetch(`${API_BASE}/cancel/${currentJobId}`, { method: 'POST' });
+        } catch (e) {
+            // Ignore — pollStatus will pick up the cancelled state
         }
     });
 
@@ -138,15 +151,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.status === 'completed') {
                 progressSection.classList.remove('active');
+                stopBtn.disabled = true;
                 resultSection.classList.add('active');
                 resultVideo.src = `${API_BASE}/outputs/${jobId}_output.mp4`;
                 processBtn.disabled = false;
-                exampleBtn.disabled = false;
+                demoBtn.disabled = false;
+                loadRecentVideos();
+            } else if (data.status === 'cancelled') {
+                progressSection.classList.remove('active');
+                stopBtn.disabled = true;
+                processBtn.disabled = false;
+                demoBtn.disabled = false;
             } else if (data.status === 'failed') {
                 showError('Processing failed: ' + data.message);
                 progressSection.classList.remove('active');
+                stopBtn.disabled = true;
                 processBtn.disabled = false;
-                exampleBtn.disabled = false;
+                demoBtn.disabled = false;
             } else {
                 setTimeout(() => pollStatus(jobId), 1000);
             }
@@ -163,6 +184,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Recent videos
+    async function loadRecentVideos() {
+        try {
+            const response = await fetch(`${API_BASE}/videos`);
+            if (!response.ok) return;
+            const videos = await response.json();
+            renderRecentVideos(videos);
+        } catch (e) {
+            // Silently fail
+        }
+    }
+
+    window.playRecentVideo = function playRecentVideo(jobId, streamUrl) {
+        currentJobId = jobId;
+        resultSection.classList.add('active');
+        resultVideo.src = `${API_BASE}${streamUrl}`;
+        resultVideo.load();
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderRecentVideos(videos) {
+        const list = document.getElementById('recentVideosList');
+        if (!videos || videos.length === 0) {
+            list.innerHTML = '<p class="no-videos-msg">No processed videos found.</p>';
+            return;
+        }
+
+        list.innerHTML = videos.map(v => {
+            const date = v.completed_at
+                ? new Date(v.completed_at + 'Z').toLocaleString()
+                : 'Unknown date';
+            const name = v.original_filename || 'video.mp4';
+            return `
+            <div class="recent-video-item">
+                <div class="recent-video-info">
+                    <div class="recent-video-name">${escapeHtml(name)}</div>
+                    <div class="recent-video-date">${date}</div>
+                </div>
+                <div class="recent-video-actions">
+                    <button class="btn-small btn-play" onclick="playRecentVideo('${v.job_id}', '${v.stream_url}')">▶ Play</button>
+                    <a class="btn-small btn-dl" href="${API_BASE}${v.download_url}" download>⬇ Download</a>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     function showError(message) {
         errorMessage.textContent = message;
         errorMessage.classList.add('active');
@@ -171,4 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideError() {
         errorMessage.classList.remove('active');
     }
+
+    loadRecentVideos();
 });

@@ -26,6 +26,11 @@
                 </div>
             </div>
 
+            <div class="demo-banner">
+                <span>No video? Try the demo video:</span>
+                <button class="btn btn-demo" id="demoBtn">▶ Use Demo Video</button>
+            </div>
+
             <h3 style="margin-bottom: 20px;">Analysis Options</h3>
 
             <div class="settings-grid">
@@ -63,20 +68,15 @@
             </div>
 
             <button class="btn btn-primary" id="processBtn" disabled>
-                Upload & Process Video
+                Process Video
             </button>
 
-            <div class="or-divider">-- or --</div>
-
-            <button class="btn btn-example" id="exampleBtn">
-                Try with Example Video (08fd33_4.mp4)
-            </button>
-
-            <div class="progress-section" id="progressSection">
+            <div class="progress-section" id="progressSection" style="margin-top: 30px;">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill">0%</div>
                 </div>
                 <div class="status-message" id="statusMessage">Initializing...</div>
+                <button class="btn btn-stop" id="stopBtn" style="margin-top: 15px;">Stop Processing</button>
             </div>
 
             <div class="result-section" id="resultSection">
@@ -85,6 +85,13 @@
                 <button class="btn btn-download" id="downloadBtn">
                     Download Processed Video
                 </button>
+            </div>
+        </div>
+
+        <div class="card" id="recentVideosCard">
+            <h3 style="margin-bottom: 20px;">Recent Processed Videos</h3>
+            <div id="recentVideosList">
+                <p class="no-videos-msg">No processed videos found.</p>
             </div>
         </div>
     </div>

@@ -7,6 +7,7 @@ import uuid
 import shutil
 from typing import Optional
 import os
+from datetime import datetime, timezone
 
 app = FastAPI(title="Football Video Analysis API")
 
@@ -31,10 +32,10 @@ app.add_middleware(
 # Create directories
 UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("outputs")
-FRONTEND_DIR = Path("src/final_app/frontend")  # <-- folder for your front-end
+FRONTEND_DIR = Path("src/final_app/frontend")
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
-FRONTEND_DIR.mkdir(exist_ok=True)  # create if it doesn't exist
+FRONTEND_DIR.mkdir(exist_ok=True)
 
 # Mount static files
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
@@ -42,7 +43,7 @@ app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend"
 
 # Store job status
 job_status = {}
-
+cancelled_jobs: set = set()
 
 EXAMPLE_VIDEO = FRONTEND_DIR / "08fd33_4.mp4"
 
@@ -88,7 +89,8 @@ async def upload_example(
     job_status[job_id] = {
         "status": "queued",
         "progress": 0,
-        "message": "Example video loaded, starting processing..."
+        "message": "Example video loaded, starting processing...",
+        "original_filename": "08fd33_4.mp4",
     }
 
     background_tasks.add_task(
@@ -137,7 +139,8 @@ async def upload_video(
     job_status[job_id] = {
         "status": "queued",
         "progress": 0,
-        "message": "Video uploaded successfully"
+        "message": "Video uploaded successfully",
+        "original_filename": video.filename,
     }
 
     # Add processing task to background
@@ -202,6 +205,64 @@ async def download_video(job_id: str):
     )
 
 
+@app.post("/demo")
+async def demo_video(background_tasks: BackgroundTasks):
+    """Start processing with the built-in demo video using default options"""
+    if not EXAMPLE_VIDEO.exists():
+        return JSONResponse({"error": "Demo video not found"}, status_code=404)
+
+    job_id = str(uuid.uuid4())
+    video_path = UPLOAD_DIR / f"{job_id}_08fd33_4.mp4"
+    shutil.copy2(EXAMPLE_VIDEO, video_path)
+
+    job_status[job_id] = {
+        "status": "queued",
+        "progress": 0,
+        "message": "Demo video loaded, starting processing...",
+        "original_filename": "08fd33_4.mp4",
+    }
+
+    background_tasks.add_task(
+        process_video,
+        job_id=job_id,
+        video_path=str(video_path),
+        enable_radar=True,
+        enable_commentary=True,
+        enable_tracking=True,
+        enable_team_clustering=True,
+        enable_tts=True,
+        end_frame=None,
+        cluster_train_frames=50,
+    )
+
+    return {"job_id": job_id, "status_url": f"/status/{job_id}"}
+
+
+@app.post("/cancel/{job_id}")
+async def cancel_job(job_id: str):
+    """Cancel a running processing job"""
+    if job_id not in job_status:
+        return JSONResponse({"error": "Job not found"}, status_code=404)
+    if job_status[job_id]["status"] not in ("queued", "processing"):
+        return JSONResponse({"error": "Job is not running"}, status_code=400)
+    cancelled_jobs.add(job_id)
+    job_status[job_id]["status"] = "cancelled"
+    job_status[job_id]["message"] = "Processing cancelled by user"
+    return {"job_id": job_id, "status": "cancelled"}
+
+
+@app.get("/videos")
+async def list_videos():
+    """Return list of completed processed videos"""
+    completed = [
+        {"job_id": job_id, **{k: v for k, v in info.items() if k != "status" or True}}
+        for job_id, info in job_status.items()
+        if info.get("status") == "completed"
+    ]
+    completed.sort(key=lambda x: x.get("completed_at", ""), reverse=True)
+    return completed
+
+
 def process_video(
         job_id: str,
         video_path: str,
@@ -230,21 +291,35 @@ def process_video(
             enable_tts=enable_tts,
             end_frame=end_frame,
             cluster_train_frames=cluster_train_frames,
-            progress_callback=lambda progress, message: update_progress(job_id, progress, message)
+            progress_callback=lambda progress, message: update_progress(job_id, progress, message),
+            cancel_check=lambda: job_id in cancelled_jobs,
         )
 
         processor.process()
 
-        job_status[job_id]["status"] = "completed"
-        job_status[job_id]["progress"] = 100
-        job_status[job_id]["message"] = "Processing completed"
-        job_status[job_id]["download_url"] = f"/download/{job_id}"
+        if job_id in cancelled_jobs:
+            cancelled_jobs.discard(job_id)
+            job_status[job_id]["status"] = "cancelled"
+            job_status[job_id]["message"] = "Processing cancelled by user"
+        else:
+            job_status[job_id]["status"] = "completed"
+            job_status[job_id]["progress"] = 100
+            job_status[job_id]["message"] = "Processing completed"
+            job_status[job_id]["download_url"] = f"/download/{job_id}"
+            job_status[job_id]["stream_url"] = f"/outputs/{job_id}_output.mp4"
+            job_status[job_id]["completed_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "")
+
+    except InterruptedError:
+        cancelled_jobs.discard(job_id)
+        job_status[job_id]["status"] = "cancelled"
+        job_status[job_id]["message"] = "Processing cancelled by user"
 
     except Exception as e:
         job_status[job_id]["status"] = "failed"
         job_status[job_id]["message"] = f"Error: {str(e)}"
 
     finally:
+        cancelled_jobs.discard(job_id)
         # Clean up uploaded video
         if os.path.exists(video_path):
             os.remove(video_path)

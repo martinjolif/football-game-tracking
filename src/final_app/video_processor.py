@@ -46,7 +46,8 @@ class VideoProcessor:
             img_size: int = 224,
             cluster_history_length: int = 20,
             ball_movement_threshold: int = 200,
-            progress_callback=None
+            progress_callback=None,
+            cancel_check=None
     ):
         self.video_path = video_path
         self.output_path = output_path
@@ -61,6 +62,7 @@ class VideoProcessor:
         self.cluster_history_length = cluster_history_length
         self.ball_movement_threshold = ball_movement_threshold
         self.progress_callback = progress_callback
+        self.cancel_check = cancel_check
 
         # Initialize device
         self.device = torch.device(
@@ -440,6 +442,9 @@ class VideoProcessor:
             last_keypoint_mask = None
 
             while True:
+                if self.cancel_check and self.cancel_check():
+                    raise InterruptedError("Processing cancelled by user")
+
                 ret, frame = video_capture.read()
                 if not ret or (self.end_frame and frame_count >= self.end_frame):
                     break
